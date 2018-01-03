@@ -1,0 +1,1 @@
+`dirname $(realpath $0)`/lib/bs/native/main.native $@
