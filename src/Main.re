@@ -29,9 +29,8 @@ Usage:
 
 |};
 
-open Commands;
 let main = () => switch (Sys.argv) {
-| [|_, "all"|] => {Native.byte(); Native.run(); android(); IOS.build(); Js.build()}
+| [|_, "all"|] => {Native.byte(); Native.run(); Android.both(); IOS.build(); Js.build()}
 | [|_, "js"|] => Js.build()
 | [|_, "js:serve"|] => {
     let (poll, _) = Js.watch();
