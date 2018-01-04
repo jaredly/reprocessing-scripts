@@ -37,8 +37,8 @@ let main = () => switch (Sys.argv) {
     let (poll, _) = Js.watch();
     StaticServer.run(~poll, "./public")
 }
-| [|_, "native"|] => native()
-| [|_, "native:hot"|] => nativeHot()
+| [|_, "native"|] => Native.run() |> ignore
+| [|_, "native:hot"|] => Native.hot()
 | [|_, "native:bundle"|] => {native();bundleApp()}
 | [|_, "ios"|] => ios()
 | [|_, "android"|] => android()

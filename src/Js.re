@@ -51,35 +51,6 @@ let build = () => {
   print_endline(">> Js build done <<")
 };
 
-let canRead = desc => {
-  let (r, w, e) = Unix.select([desc], [], [], 0.01);
-  r != []
-};
-
-let pollableCommand = (name, cmd) => {
-  let proc = Unix.open_process_in(cmd);
-  let desc = Unix.descr_of_in_channel(proc);
-  let out = ref("");
-  let buffer_size = 8192;
-  let buffer = Bytes.create(buffer_size);
-  let poll = () => {
-    if (canRead(desc)) {
-      let read = Unix.read(desc, buffer, 0, buffer_size);
-      let got = Bytes.sub_string(buffer, 0, read);
-      if (String.length(String.trim(got)) > 0) {
-        print_endline("[ " ++ name ++ " ]");
-        print_newline();
-        print_endline("    " ++ Str.global_replace(Str.regexp("\n"), "\n    ", got));
-      };
-      out := out^ ++ got;
-    }
-  };
-  let close = () => {
-    Unix.close_process_in(proc) |> ignore
-  };
-  (poll, close)
-};
-
 let watch = () => {
   ensurePublic();
   if (Builder.exists("assets")) {
@@ -87,8 +58,8 @@ let watch = () => {
     BuildUtils.copyDirShallow("./assets", "./public/assets");
   };
   let buffers = ref([|"", ""|]);
-  let (bsb, close_bsb) = pollableCommand("Bucklescript", bsbCommand ++ " -w");
-  let (webpack, close_webpack) = pollableCommand("Webpack", webpackCommand ++ " -w");
+  let (bsb, close_bsb, _) = BuildUtils.pollableCommand("Bucklescript", bsbCommand ++ " -w");
+  let (webpack, close_webpack, _) = BuildUtils.pollableCommand("Webpack", webpackCommand ++ " -w");
   let poll = () => {
     bsb();
     webpack();
