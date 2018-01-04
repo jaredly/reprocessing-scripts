@@ -1,0 +1,4 @@
+
+let build = () => {
+  BuildIOS.both();
+};

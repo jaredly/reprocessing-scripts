@@ -1,11 +1,10 @@
 
-let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
-
-let ndk = try (Sys.getenv("ANDROID_NDK")) {
-| Not_found => cross ++ "/android-ndk"
-};
-
 let makeEnv = (arch, abi, ndk1, full) => {
+  let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
+  let ndk = try (Sys.getenv("ANDROID_NDK")) {
+  | Not_found => cross ++ "/android-ndk"
+  };
+
   let ocaml = cross ++ "/android-" ++ arch;
   let sysroot = ocaml;
   let darwin_ndk = ndk ++ "/toolchains/" ++ ndk1 ++ "-4.9/prebuilt/darwin-x86_64";
@@ -15,6 +14,11 @@ let makeEnv = (arch, abi, ndk1, full) => {
 };
 
 let buildForArch = (arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
+  let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
+  let ndk = try (Sys.getenv("ANDROID_NDK")) {
+  | Not_found => cross ++ "/android-ndk"
+  };
+
   let ocaml = Filename.concat(Sys.getenv("HOME"), ".opam/4.04.0+android+" ++ ocamlarch);
   if (!Builder.exists("_build")) Unix.mkdir("_build", 0o740);
 
@@ -28,6 +32,13 @@ let buildForArch = (arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
   };
   if (!Builder.exists(ndk)) {
     print_endline("NDK not found. (looked in " ++ ndk ++ ". Please download 11c from https://developer.android.com/ndk/downloads/older_releases.html or specify its location with the ANDROID_NDK env variable.");
+    exit(1);
+  };
+
+  if (!Builder.exists("./src/android.re")) {
+    print_newline();
+    print_endline("[!] no file ./src/android.re found");
+    print_newline();
     exit(1);
   };
 
@@ -46,7 +57,7 @@ let buildForArch = (arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
       ++ " -I" ++ ocaml ++ "/lib/ocaml -L"
       ++ ocaml ++ "/lib",
     mlOpts: "-runtime-variant _pic -g",
-    dependencyDirs: ["./reasongl-interface/src", "./reasongl-android/src", "./reprocessing/src"],
+    dependencyDirs: ["./node_modules/@jaredly/reasongl-interface/src", "./node_modules/@jaredly/reasongl-android/src", "./node_modules/@jaredly/reprocessing/src"],
     buildDir: "_build/android_" ++ arch,
     env: env ++ " BSB_BACKEND=native-android",
 
@@ -62,7 +73,16 @@ let buildForArch = (arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
 let armv7 = () => buildForArch("armeabi-v7a", "armv7", "arm", "armabi", "arm-linux-androideabi", "arm-linux-androideabi");
 let x86 = () => buildForArch("x86", "x86", "x86", "x86", "x86", "i686-linux-android");
 
-switch (Sys.argv) {
+let both = () => {
+  armv7();
+  x86();
+};
+
+let install = () => {
+  BuildUtils.showCommand("cd android && ./gradlew installDebug")
+};
+
+/* switch (Sys.argv) {
 | [|_, "armv7"|] => armv7()
 | [|_, "x86"|] => x86()
 | [|_, "all" | "both"|] => {armv7(); x86()}
@@ -71,4 +91,4 @@ switch (Sys.argv) {
 
 Where arch is one of armv7, x86, or all
 ")
-};
+}; */

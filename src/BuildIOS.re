@@ -1,10 +1,5 @@
 
-let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
-let xcode = BuildUtils.readCommand("xcode-select -p") |> Builder.unwrap("Failed to find xcode") |> List.hd;
-
-if (!Builder.exists("_build")) Unix.mkdir("_build", 0o740);
-
-let makeEnv = (arch) => {
+let makeEnv = (cross, xcode, arch) => {
   let ocaml = cross ++ "/ios-" ++ arch;
   let sysroot = ocaml;
   let cc = "clang -arch " ++ arch ++ " -isysroot " ++ xcode ++ "/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=8.0";
@@ -17,7 +12,7 @@ let makeEnv = (arch) => {
    CAML_ASM=\"" ++ cc ++ " -c\"";
 };
 
-let buildForArch = (~suffixed=true, arch, sdkName) => {
+let buildForArch = (~suffixed=true, cross, xcode, arch, sdkName) => {
   let sdk = xcode ++ "/Platforms/" ++ sdkName ++ ".platform/Developer/SDKs/" ++ sdkName ++ ".sdk";
 
   let ocaml = cross ++ "/ios-" ++ arch;
@@ -28,30 +23,50 @@ let buildForArch = (~suffixed=true, arch, sdkName) => {
     exit(1);
   };
 
+  if (!Builder.exists("./src/ios.re")) {
+    print_newline();
+    print_endline("[!] no file ./src/ios.re found");
+    print_newline();
+    exit(1);
+  };
+
   Builder.compile(Builder.{
     name: suffixed ? "reasongl_" ++ arch : "reasongl",
     shared: false,
     mainFile: "./src/ios.re",
-    cOpts: "-arch " ++ arch ++ " -isysroot " ++ sdk ++ " -isystem " ++ ocaml ++ "/lib/ocaml -DCAML_NAME_SPACE -I./ios/Gravitron -I" ++ ocaml ++ "/lib/ocaml/caml -fno-objc-arc -miphoneos-version-min=7.0",
+    cOpts: "-arch " ++ arch ++ " -isysroot " ++ sdk ++ " -isystem " ++ ocaml ++ "/lib/ocaml -DCAML_NAME_SPACE -I./node_modules/@jaredly/reasongl-ios/ios -I" ++ ocaml ++ "/lib/ocaml/caml -fno-objc-arc -miphoneos-version-min=7.0",
     mlOpts: "bigarray.cmxa -verbose",
-    dependencyDirs: ["./reasongl-interface/src", "./reasongl-ios/src", "./reprocessing/src"],
+    dependencyDirs: ["./node_modules/@jaredly/reasongl-interface/src", "./node_modules/@jaredly/reasongl-ios/src", "./node_modules/@jaredly/reprocessing/src"],
     buildDir: "_build/ios_" ++ arch,
-    env: makeEnv(arch) ++ " BSB_BACKEND=native-ios",
+    env: makeEnv(cross, xcode, arch) ++ " BSB_BACKEND=native-ios",
 
     cc: xcode ++ "/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
     outDir: "./ios/",
     ppx: ["\"" ++ ocaml ++ "/bin/ocamlrun " ++ cross ++ "/matchenv.ppx\""],
     ocamlDir: ocaml,
-    refmt: "./reasongl-ios/refmt", /* HACK */
+    refmt: cross ++ "/refmt",
   });
 };
 
-let arm64 = () => buildForArch(~suffixed=false, "arm64", "iPhoneOS");
-let x86_64 = () => buildForArch(~suffixed=false, "x86_64", "iPhoneSimulator");
+let arm64 = () => {
+  let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
+  let xcode = BuildUtils.readCommand("xcode-select -p") |> Builder.unwrap("Failed to find xcode") |> List.hd;
+  buildForArch(~suffixed=false, cross, xcode, "arm64", "iPhoneOS");
+};
+let x86_64 = () => {
+  let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
+  let xcode = BuildUtils.readCommand("xcode-select -p") |> Builder.unwrap("Failed to find xcode") |> List.hd;
+  buildForArch(~suffixed=false, cross, xcode, "x86_64", "iPhoneSimulator");
+};
 
 let both = () => {
-  buildForArch("x86_64", "iPhoneSimulator");
-  buildForArch("arm64", "iPhoneOS");
+  let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
+  let xcode = BuildUtils.readCommand("xcode-select -p") |> Builder.unwrap("Failed to find xcode") |> List.hd;
+
+  if (!Builder.exists("_build")) Unix.mkdir("_build", 0o740);
+
+  buildForArch(cross, xcode, "x86_64", "iPhoneSimulator");
+  buildForArch(cross, xcode, "arm64", "iPhoneOS");
 
   BuildUtils.readCommand(
     "lipo -create -o ios/libreasongl.a ios/libreasongl_arm64.a ios/libreasongl_x86_64.a"
@@ -61,7 +76,7 @@ let both = () => {
   Unix.unlink("ios/libreasongl_x86_64.a");
 };
 
-switch (Sys.argv) {
+/* switch (Sys.argv) {
 | [|_, "arm64"|] => arm64()
 | [|_, "x86_64"|] => x86_64()
 | [|_, "all" | "both"|] => both()
@@ -70,4 +85,4 @@ switch (Sys.argv) {
 
 Where arch is one of arm64, x86_64, all
 ")
-};
+}; */

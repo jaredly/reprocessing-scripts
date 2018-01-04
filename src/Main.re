@@ -31,18 +31,18 @@ Usage:
 
 open Commands;
 let main = () => switch (Sys.argv) {
-| [|_, "all"|] => {native(); android(); ios(); js()}
+| [|_, "all"|] => {Native.byte(); Native.run(); android(); IOS.build(); Js.build()}
 | [|_, "js"|] => Js.build()
 | [|_, "js:serve"|] => {
     let (poll, _) = Js.watch();
     StaticServer.run(~poll, "./public")
 }
-| [|_, "native"|] => Native.run() |> ignore
+| [|_, "native"|] => Native.byte() |> ignore
 | [|_, "native:hot"|] => Native.hot()
-| [|_, "native:bundle"|] => {native();bundleApp()}
-| [|_, "ios"|] => ios()
-| [|_, "android"|] => android()
-| [|_, "android:run"|] => {android(); gradleInstall()}
+| [|_, "native:bundle"|] => {Native.run();Native.bundle()}
+| [|_, "ios"|] => IOS.build()
+| [|_, "android"|] => Android.both()
+| [|_, "android:run"|] => {Android.both(); Android.install() |> ignore}
 | _ => {print_endline(usage); exit(1)}
 };
 
