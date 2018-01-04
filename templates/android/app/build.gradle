@@ -1,0 +1,54 @@
+apply plugin: 'com.android.application'
+
+// def keystorePropertiesFile = rootProject.file("keystore.properties")
+// def keystoreProperties = new Properties()
+// keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+task copyTask(type: Copy) {
+    def toDir = rootProject.file('app/src/main/assets')
+    from rootProject.file('../assets')
+    into toDir
+}
+
+
+android {
+    // signingConfigs {
+    //     config {
+    //         keyAlias keystoreProperties['keyAlias']
+    //         keyPassword keystoreProperties['keyPassword']
+    //         storeFile file(keystoreProperties['storeFile'])
+    //         storePassword keystoreProperties['storePassword']
+    //     }
+    // }
+    compileSdkVersion = 21
+    buildToolsVersion = '25.0.0'
+    defaultConfig {
+        applicationId = 'com.jaredforsyth.reprocessing_example'
+        minSdkVersion 21
+        targetSdkVersion 21
+        versionCode = 3
+        versionName = '1.2'
+        // signingConfig signingConfigs.config
+    }
+    buildTypes {
+        debug {
+
+            copyTask.execute()
+        }
+        release {
+            minifyEnabled false
+            copyTask.execute()
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // signingConfig signingConfigs.config
+        }
+    }
+    productFlavors {
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile 'com.android.support:appcompat-v7:21.0.0'
+    compile 'com.android.support.constraint:constraint-layout:1.0.0-alpha2'
+    compile project(':reasongl-android')
+}
