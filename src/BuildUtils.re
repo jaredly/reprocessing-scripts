@@ -33,10 +33,9 @@ let readdir = (dir) => {
 };
 
 let copyDirShallow = (source, dest) => {
-  List.iter(
-    (name) => copy(Filename.concat(source, name), Filename.concat(dest, name)),
-    readdir(source)
-  )
+  readdir(source)
+  |> List.filter(name => name.[0] != '.')
+  |> List.iter((name) => copy(Filename.concat(source, name), Filename.concat(dest, name)))
 };
 
 /**
