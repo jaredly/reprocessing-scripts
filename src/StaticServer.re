@@ -72,7 +72,7 @@ let handler = (base, method, path, headers) => {
   }
 };
 
-let run = path => BasicServer.listen(3451, handler(path));
+let run = (~poll=?, path) => BasicServer.listen(~poll=?poll, 3451, handler(path));
 
 let main = () => {
   switch (Sys.argv) {

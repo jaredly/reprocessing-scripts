@@ -32,6 +32,13 @@ let readdir = (dir) => {
   loop(Unix.opendir(dir))
 };
 
+let copyDirShallow = (source, dest) => {
+  List.iter(
+    (name) => copy(Filename.concat(source, name), Filename.concat(dest, name)),
+    readdir(source)
+  )
+};
+
 /**
  * Get the output of a command, in lines.
  */
@@ -51,7 +58,7 @@ let readCommand = (command) => {
     | WEXITED(_)
     | WSIGNALED(_)
     | WSTOPPED(_) =>
-      print_endline("Command ended with non-zero exit code");
+      print_endline("Command " ++ command ++ " ended with non-zero exit code");
       None
     }
   } {

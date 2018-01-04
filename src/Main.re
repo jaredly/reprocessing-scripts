@@ -33,7 +33,10 @@ open Commands;
 let main = () => switch (Sys.argv) {
 | [|_, "all"|] => {native(); android(); ios(); js()}
 | [|_, "js"|] => Js.build()
-| [|_, "js:serve"|] => {jsWatch(); StaticServer.run("./public")}
+| [|_, "js:serve"|] => {
+    let (poll, _) = Js.watch();
+    StaticServer.run(~poll, "./public")
+}
 | [|_, "native"|] => native()
 | [|_, "native:hot"|] => nativeHot()
 | [|_, "native:bundle"|] => {native();bundleApp()}
