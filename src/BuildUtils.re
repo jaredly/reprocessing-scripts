@@ -2,8 +2,9 @@
 let withReSuffix = path => Filename.chop_extension(path) ++ ".re";
 
 let copy = (source, dest) => {
-  let fs = Unix.openfile(source, [Unix.O_RDONLY], 0o640);
-  let fd = Unix.openfile(dest, [Unix.O_WRONLY, Unix.O_CREAT, Unix.O_TRUNC], 0o640);
+  let {Unix.st_perm} = Unix.stat(source);
+  let fs = Unix.openfile(source, [Unix.O_RDONLY], st_perm);
+  let fd = Unix.openfile(dest, [Unix.O_WRONLY, Unix.O_CREAT, Unix.O_TRUNC], st_perm);
   let buffer_size = 8192;
   let buffer = Bytes.create(buffer_size);
   let rec copy_loop = () => switch(Unix.read(fs, buffer, 0, buffer_size)) {
@@ -15,6 +16,10 @@ let copy = (source, dest) => {
   copy_loop();
   Unix.close(fs);
   Unix.close(fd);
+};
+
+let exists = path => try {Unix.stat(path) |> ignore; true} {
+| Unix.Unix_error(Unix.ENOENT, _, _) => false
 };
 
 let readdir = (dir) => {
@@ -36,6 +41,29 @@ let copyDirShallow = (source, dest) => {
   readdir(source)
   |> List.filter(name => name.[0] != '.')
   |> List.iter((name) => copy(Filename.concat(source, name), Filename.concat(dest, name)))
+};
+
+let rec mkdirp = (dest) => {
+  if (!exists(dest)) {
+    let parent = Filename.dirname(dest);
+    mkdirp(parent);
+    Unix.mkdir(dest, 0o740);
+  }
+};
+
+let rec copyDeep = (source, dest) => {
+  if (!exists(dest)) Unix.mkdir(dest, 0o740);
+  readdir(source)
+  |> List.filter(name => name != "." && name != "..")
+  |> List.iter((name) => {
+    let src = Filename.concat(source, name);
+    switch (Unix.stat(src)) {
+    | exception Unix.Unix_error(Unix.ENOENT, _, _) => ()
+    | {Unix.st_kind: Unix.S_DIR} => copyDeep(src, Filename.concat(dest, name))
+    | {Unix.st_kind: Unix.S_REG} => copy(src, Filename.concat(dest, name))
+    | _ => print_endline("Skipping " ++ src)
+    }
+  })
 };
 
 /**

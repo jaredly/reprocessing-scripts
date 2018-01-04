@@ -42,6 +42,10 @@ let buildForArch = (arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
     exit(1);
   };
 
+  if (!Builder.exists("android")) {
+    BuildUtils.copyDeep("./node_modules/reprocessing-scripts/templates/android", "./android");
+  };
+
   Builder.compile(Builder.{
     name: "reasongl",
     shared: true,

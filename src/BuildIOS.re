@@ -30,6 +30,10 @@ let buildForArch = (~suffixed=true, cross, xcode, arch, sdkName) => {
     exit(1);
   };
 
+  if (!Builder.exists("ios")) {
+    BuildUtils.copyDeep("./node_modules/reprocessing-scripts/templates/ios", "./ios");
+  };
+
   Builder.compile(Builder.{
     name: suffixed ? "reasongl_" ++ arch : "reasongl",
     shared: false,
