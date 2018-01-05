@@ -273,7 +273,7 @@
 				DEVELOPMENT_TEAM = B79F793LZ6;
 				ENABLE_BITCODE = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
-				HEADER_SEARCH_PATHS = "\"~/.opam/4.04.0+ios+amd64/ios-sysroot/lib/ocaml/caml\"";
+				HEADER_SEARCH_PATHS = "\"~/.ocaml-cross-mobile/ios-x86_64/lib/ocaml/caml\"";
 				INFOPLIST_FILE = "$(SRCROOT)/App/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
 				LD_NO_PIE = NO;
@@ -300,7 +300,7 @@
 				DEVELOPMENT_TEAM = B79F793LZ6;
 				ENABLE_BITCODE = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
-				HEADER_SEARCH_PATHS = "\"~/.opam/4.04.0+ios+amd64/ios-sysroot/lib/ocaml/caml\"";
+				HEADER_SEARCH_PATHS = "\"~/.ocaml-cross-mobile/ios-x86_64/lib/ocaml/caml\"";
 				INFOPLIST_FILE = "$(SRCROOT)/App/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
 				LD_NO_PIE = NO;

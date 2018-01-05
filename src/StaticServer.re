@@ -81,5 +81,3 @@ let main = () => {
   | _ => print_endline("Usage: serve [path: default current]")
   }
 };
-
-/* main(); */
