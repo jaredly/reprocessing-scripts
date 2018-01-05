@@ -85,14 +85,3 @@ let both = () => {
 let install = () => {
   BuildUtils.showCommand("cd android && ./gradlew installDebug")
 };
-
-/* switch (Sys.argv) {
-| [|_, "armv7"|] => armv7()
-| [|_, "x86"|] => x86()
-| [|_, "all" | "both"|] => {armv7(); x86()}
-
-| _ => print_endline("Usage: build-android [arch]
-
-Where arch is one of armv7, x86, or all
-")
-}; */

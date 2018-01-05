@@ -79,14 +79,3 @@ let both = () => {
   Unix.unlink("ios/libreasongl_arm64.a");
   Unix.unlink("ios/libreasongl_x86_64.a");
 };
-
-/* switch (Sys.argv) {
-| [|_, "arm64"|] => arm64()
-| [|_, "x86_64"|] => x86_64()
-| [|_, "all" | "both"|] => both()
-
-| _ => print_endline("Usage: build-android [arch]
-
-Where arch is one of arm64, x86_64, all
-")
-}; */
