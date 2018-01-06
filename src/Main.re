@@ -34,8 +34,9 @@ let main = () => switch (Sys.argv) {
 | [|_, "js"|] => Js.build()
 | [|_, "js:serve"|] => {
     let (poll, _) = Js.watch();
-    BuildUtils.showCommand("open http://localhost:3451");
-    StaticServer.run(~poll, "./public")
+    BuildUtils.showCommand("open http://localhost:3451") |> ignore;
+    print_endline("Static server on http://localhost:3451");
+    Static.run(~poll, ~port=3451, "./public")
 }
 | [|_, "native"|] => Native.byte() |> ignore
 | [|_, "native:hot"|] => Native.hot()

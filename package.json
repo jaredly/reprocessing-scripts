@@ -12,10 +12,12 @@
   "scripts": {
     "build": "bsb -make-world -backend native",
     "watch": "bsb -make-world -backend native -w",
-    "postinstall": "bsb -make-world -backend native",
     "clean": "bsb -clean-world"
   },
   "dependencies": {
-    "bs-platform": "bsansouci/bsb-native#fast"
+    "bs-platform": "bsansouci/bsb-native#fast",
+    "reason-cli-tools": "^1.0.3",
+    "reason-simple-server": "^1.0.0",
+    "rex-json": "^1.0.2"
   }
 }
