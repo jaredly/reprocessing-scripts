@@ -3,15 +3,26 @@ open BuildUtils;
 
 let getSourceNames = (mainFile) => {
   let sourceDirectory = Filename.dirname(mainFile);
-  List.filter(
+  let names = List.filter(
     (name) => Filename.check_suffix(name, ".re"),
     readdir(sourceDirectory)
   )
-  |> List.map((name) => sourceDirectory ++ "/" ++ name)
+  |> List.map((name) => sourceDirectory ++ "/" ++ name);
+  names
 };
 
 let parseOcamldep = (lines) => {
-  List.map(
+  lines |> List.filter(
+    line => {
+      switch (Str.split(Str.regexp(":"), line)) {
+      | [target, ..._] => {
+        Filename.check_suffix(String.trim(target), ".cmx")
+      }
+      | _ => false
+      }
+    }
+  )
+  |> List.map(
     line => {
       switch (Str.split(Str.regexp(":"), line)) {
       | [target, deps] => {
@@ -29,8 +40,7 @@ let parseOcamldep = (lines) => {
       }
       | _ => failwith("Invalid ocamldep output: " ++ line)
       }
-    },
-    lines
+    }
   );
 };
 

@@ -67,11 +67,10 @@ let buildForArch = (arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
 
     cc: ndk ++ "/toolchains/" ++ gccarch ++ "-4.9/prebuilt/darwin-x86_64/bin/" ++ gccarch2 ++ "-gcc",
     outDir: "./android/app/src/main/jniLibs/" ++ arch ++ "/",
-    ppx: ["\"" ++ ocaml ++ "/bin/ocamlrun " ++ cross ++ "/matchenv.ppx\""],
+    ppx: [Filename.concat(BuildUtils.findMatchenv(), "matchenv")],
     ocamlDir: ocaml,
-    refmt: cross ++ "/refmt",
+    refmt: "./node_modules/bs-platform/lib/refmt3.exe",
   });
-
 };
 
 let armv7 = () => buildForArch("armeabi-v7a", "armv7", "arm", "armabi", "arm-linux-androideabi", "arm-linux-androideabi");

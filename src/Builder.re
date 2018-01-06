@@ -67,7 +67,6 @@ let copyAndSort = ({mainFile, dependencyDirs, buildDir, ocamlDir, refmt}) => {
   let mainFileName = Filename.concat(buildDir, Filename.basename(mainFile));
   let reasonOrOcamlFiles = List.filter(isSourceFile, allNames);
   let filesInOrder = unwrap("Failed to run ocamldep", Getdeps.sortSourceFilesInDependencyOrder(~ocamlDir, ~refmt, reasonOrOcamlFiles, mainFileName));
-  /* print_endline(String.concat(" -- ", filesInOrder)); */
   (allNames, filesInOrder)
 };
 

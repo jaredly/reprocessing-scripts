@@ -207,3 +207,33 @@ let keepAlive = (name, cmd, args) => {
 
   (poll, close)
 };
+
+let rec findNodeModule = (name, base) => {
+  if (exists(base)) {
+    let full = Filename.concat(base, name);
+    if (ReasonCliTools.Files.isDirectory(full)) {
+      Some(full)
+    } else {
+      let names = ReasonCliTools.Files.readDirectory(base);
+      let rec loop = names => {
+        switch (names) {
+        | [name, ...rest] => switch (findNodeModule(name, Filename.concat(Filename.concat(base, name), "node_modules"))) {
+          | None => loop(rest)
+          | Some(x) => Some(x)
+          }
+        | [] => None
+        }
+      };
+      loop(names)
+    }
+  } else {
+    None
+  }
+};
+
+let findMatchenv = () => {
+  switch (findNodeModule("matchenv", "node_modules")) {
+  | None => failwith("matchenv not found - it should be installed as a dependency of reprocessing")
+  | Some(x) => x
+  }
+};

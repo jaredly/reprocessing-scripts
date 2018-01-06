@@ -40,15 +40,20 @@ let buildForArch = (~suffixed=true, cross, xcode, arch, sdkName) => {
     mainFile: "./src/ios.re",
     cOpts: "-arch " ++ arch ++ " -isysroot " ++ sdk ++ " -isystem " ++ ocaml ++ "/lib/ocaml -DCAML_NAME_SPACE -I./node_modules/@jaredly/reasongl-ios/ios -I" ++ ocaml ++ "/lib/ocaml/caml -fno-objc-arc -miphoneos-version-min=7.0",
     mlOpts: "bigarray.cmxa -verbose",
-    dependencyDirs: ["./node_modules/@jaredly/reasongl-interface/src", "./node_modules/@jaredly/reasongl-ios/src", "./node_modules/@jaredly/reprocessing/src"],
+    dependencyDirs: [
+      "./node_modules/@jaredly/reasongl-interface/src",
+      "./node_modules/@jaredly/reasongl-ios/src",
+      "./node_modules/@jaredly/reprocessing/src"
+    ],
     buildDir: "_build/ios_" ++ arch,
     env: makeEnv(cross, xcode, arch) ++ " BSB_BACKEND=native-ios",
 
     cc: xcode ++ "/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
     outDir: "./ios/",
-    ppx: ["\"" ++ ocaml ++ "/bin/ocamlrun " ++ cross ++ "/matchenv.ppx\""],
+    /* ppx: ["\"" ++ ocaml ++ "/bin/ocamlrun " ++ cross ++ "/matchenv.ppx\""], */
+    ppx: [Filename.concat(BuildUtils.findMatchenv(), "matchenv")],
     ocamlDir: ocaml,
-    refmt: cross ++ "/refmt",
+    refmt: "./node_modules/bs-platform/lib/refmt3.exe",
   });
 };
 
