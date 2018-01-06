@@ -29,17 +29,17 @@ Usage:
 
 |};
 
-let main = () => switch (Sys.argv) {
+let main = (bsconfig) => switch (Sys.argv) {
 | [|_, "all"|] => {Native.byte(); Native.run(); Android.both(); IOS.build(); Js.build()}
 | [|_, "js"|] => Js.build()
 | [|_, "js:serve"|] => {
     let (poll, _) = Js.watch();
     BuildUtils.showCommand("open http://localhost:3451") |> ignore;
     print_endline("Static server on http://localhost:3451");
-    Static.run(~poll, ~port=3451, "./public")
+    ReasonSimpleServer.Static.run(~poll, ~port=3451, "./public")
 }
 | [|_, "native"|] => Native.byte() |> ignore
-| [|_, "native:hot"|] => Native.hot()
+| [|_, "native:hot"|] => Native.hot(bsconfig)
 | [|_, "native:bundle"|] => {Native.run();Native.bundle()}
 | [|_, "ios"|] => IOS.build()
 | [|_, "android"|] => Android.both()
@@ -47,4 +47,17 @@ let main = () => switch (Sys.argv) {
 | _ => {print_endline(usage); exit(1)}
 };
 
-main()
+switch (ReasonCliTools.Files.readFile("bsconfig.json")) {
+| None => {
+    print_endline("No bsconfig.json file found in current directory");
+    exit(1)
+}
+| Some(text) => {
+    let json = try(Some(Json.parse(text))) { | _ => None };
+    switch json {
+    | None => {print_endline("Failed to parse bsconfig.json"); exit(1)}
+    | Some(json) => main(json)
+    }
+}
+};
+/* main(ReasonCliTools.Files.readFile("bsconfig.json")) */

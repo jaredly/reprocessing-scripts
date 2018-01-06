@@ -59,7 +59,7 @@ let watch = () => {
   };
   let buffers = ref([|"", ""|]);
   let (bsb, close_bsb, _) = BuildUtils.pollableCommand("Bucklescript", bsbCommand ++ " -w");
-  let (webpack, close_webpack, _) = BuildUtils.pollableCommand("Webpack", webpackCommand ++ " -w");
+  let (webpack, close_webpack, _) = BuildUtils.pollableCommand("Webpack", "sleep 2 && " ++ webpackCommand ++ " -w");
   let poll = () => {
     bsb();
     webpack();
