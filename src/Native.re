@@ -29,19 +29,13 @@ let getHotName = config => {
 let hot = (config) => {
   byte() |> ignore;
 
-  switch (getHotName(config)) {
-  | None => failwith("Don't know which module to hot-reload. Either add hot: true to the entry, or make an 'Indexhot' entry.")
-  | Some(name) => {
-    let name = String.lowercase(name);
-    let (cmd, closecmd, _) = BuildUtils.pollableCommand("Bucklescript", "./node_modules/.bin/bsb -make-world -backend bytecode -w");
-    let (poll, close) = BuildUtils.keepAlive("Game", "bash", [|"bash", "-c", "./lib/bs/bytecode/" ++ name ++ ".byte"|]);
-    let lastCheck = ref(Unix.gettimeofday());
-    while (true) {
-      cmd();
-      poll();
-    };
-  }
-  }
+  let (cmd, closecmd, _) = BuildUtils.pollableCommand("Bucklescript", "./node_modules/.bin/bsb -make-world -backend bytecode -w");
+  let (poll, close) = BuildUtils.keepAlive("Game", "bash", [|"bash", "-c", "./lib/bs/bytecode/indexhot.byte"|]);
+  let lastCheck = ref(Unix.gettimeofday());
+  while (true) {
+    cmd();
+    poll();
+  };
 };
 
 let bundle = () => {
