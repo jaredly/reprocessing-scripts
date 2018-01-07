@@ -85,3 +85,7 @@ let both = () => {
   Unix.unlink("ios/libreasongl_arm64.a");
   Unix.unlink("ios/libreasongl_x86_64.a");
 };
+
+let xcodebuild = () => {
+  failwith("TODO impl");
+};
