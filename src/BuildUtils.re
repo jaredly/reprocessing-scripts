@@ -220,12 +220,15 @@ let rec findNodeModule = (name, base) => {
       let names = ReasonCliTools.Files.readDirectory(base);
       let rec loop = names => {
         switch (names) {
-        | [name, ...rest] => switch (findNodeModule(name, Filename.concat(Filename.concat(base, name), "node_modules"))) {
+        | [name, ...rest] => {
+          let child = name.[0] == '@' ? name : Filename.concat(name, "node_modules");
+          switch (findNodeModule(name, Filename.concat(base, child))) {
           | None => loop(rest)
           | Some(x) => Some(x)
           }
-        | [] => None
         }
+        | [] => None
+      }
       };
       loop(names)
     }
