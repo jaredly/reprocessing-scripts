@@ -7,7 +7,6 @@
   },
   "sources": [
     "./src",
-    {"dir": "test", "type": "dev"},
   ],
   "package-specs": ["commonjs", "es6"],
   "bs-dependencies": ["rex-json", "reason-cli-tools", "reason-simple-server"],
