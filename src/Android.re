@@ -83,5 +83,5 @@ let both = () => {
 
 let install = () => {
   print_endline("Running ./gradlew installDebug");
-  BuildUtils.showCommand("cd android && ./gradlew installDebug")
+  BuildUtils.showCommand(~echo=true, "cd android && ./gradlew installDebug")
 };

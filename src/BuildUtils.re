@@ -97,7 +97,7 @@ let readCommand = (command) => {
 /**
  * Show the output of a command, in lines.
  */
-let showCommand = (command) => {
+let showCommand = (~echo=false, command) => {
   /* print_endline(command); */
   let chan = Unix.open_process_in(command);
   try {
@@ -105,7 +105,7 @@ let showCommand = (command) => {
       switch (Pervasives.input_line(chan)) {
       | exception End_of_file => ()
       | line => {
-        /* print_endline(line); */
+        if (echo) print_endline(line);
         loop()
       }
       }
