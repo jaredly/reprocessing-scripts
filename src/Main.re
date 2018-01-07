@@ -30,7 +30,7 @@ Usage:
 |};
 
 let main = (bsconfig) => switch (Sys.argv) {
-| [|_, "all"|] => {Native.byte(); Native.run(); Android.both(); IOS.build(); Js.build()}
+| [|_, "all"|] => {Native.byte(); Native.run(); Android.both(); IOS.both(); Js.build()}
 | [|_, "js"|] => Js.build()
 | [|_, "js:serve"|] => {
     let (poll, _) = Js.watch();
@@ -41,7 +41,7 @@ let main = (bsconfig) => switch (Sys.argv) {
 | [|_, "native"|] => Native.byte() |> ignore
 | [|_, "native:hot"|] => Native.hot(bsconfig)
 | [|_, "native:bundle"|] => {Native.run();Native.bundle()}
-| [|_, "ios"|] => IOS.build()
+| [|_, "ios"|] => IOS.both()
 | [|_, "android"|] => Android.both()
 | [|_, "android:run"|] => {Android.both(); Android.install() |> ignore}
 | _ => {print_endline(usage); exit(1)}
