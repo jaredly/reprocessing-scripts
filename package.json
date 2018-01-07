@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "bs-platform": "bsansouci/bsb-native#fast",
+    "webpack": "*",
     "reason-cli-tools": "^1.0.3",
     "reason-simple-server": "^1.0.2",
     "rex-json": "^1.0.2"

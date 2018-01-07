@@ -73,7 +73,7 @@ let copyAndSort = ({mainFile, dependencyDirs, buildDir, ocamlDir, refmt}) => {
 let ocamlopt = config => {
   let ppxFlags = String.concat(" ", List.map(name => "-ppx " ++ name, config.ppx));
   Printf.sprintf(
-    "%s %s %s %s %s %s -I %s -w -40 -pp '%s --print binary' -verbose",
+    "%s %s %s %s %s %s -I %s -w -40 -pp '%s --print binary'", /*  -verbose */
     config.env,
     Filename.concat(config.ocamlDir, "bin/ocamlrun"),
     Filename.concat(config.ocamlDir, "bin/ocamlopt"),
@@ -190,7 +190,7 @@ let mapNewer = (fn, files) => {
 };
 
 let compile = config => {
-  print_endline("Building");
+  print_endline("Building " ++ config.outDir ++ config.name);
   BuildUtils.mkdirp(config.outDir);
   BuildUtils.readCommand(ocamlopt(config) ++ " -config") |> unwrap(
     "OCaml compiler not set up correctly - can't run -config"

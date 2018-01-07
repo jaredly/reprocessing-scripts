@@ -70,7 +70,7 @@ let rec copyDeep = (source, dest) => {
  * Get the output of a command, in lines.
  */
 let readCommand = (command) => {
-  print_endline(command);
+  /* print_endline(command); */
   let chan = Unix.open_process_in(command);
   try {
     let rec loop = () => {
@@ -98,13 +98,16 @@ let readCommand = (command) => {
  * Show the output of a command, in lines.
  */
 let showCommand = (command) => {
-  print_endline(command);
+  /* print_endline(command); */
   let chan = Unix.open_process_in(command);
   try {
     let rec loop = () => {
       switch (Pervasives.input_line(chan)) {
       | exception End_of_file => ()
-      | line => {print_endline(line);loop()}
+      | line => {
+        /* print_endline(line); */
+        loop()
+      }
       }
     };
     loop();

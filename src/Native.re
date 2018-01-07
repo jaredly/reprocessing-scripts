@@ -1,6 +1,6 @@
 
-let byte = () => BuildUtils.showCommand("./node_modules/.bin/bsb -make-world -backend bytecode");
-let run = () => BuildUtils.showCommand("./node_modules/.bin/bsb -make-world -backend native");
+let byte = () => BuildUtils.showCommand("./node_modules/.bin/bsb -make-world -backend bytecode") |> ignore;
+let run = () => BuildUtils.showCommand("./node_modules/.bin/bsb -make-world -backend native") |> ignore;
 
 let maybeFind = (fn, lst) => {
   switch (List.filter(fn, lst)) {

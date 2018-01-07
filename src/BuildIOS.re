@@ -50,7 +50,6 @@ let buildForArch = (~suffixed=true, cross, xcode, arch, sdkName) => {
 
     cc: xcode ++ "/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
     outDir: "./ios/",
-    /* ppx: ["\"" ++ ocaml ++ "/bin/ocamlrun " ++ cross ++ "/matchenv.ppx\""], */
     ppx: [Filename.concat(BuildUtils.findMatchenv(), "matchenv")],
     ocamlDir: ocaml,
     refmt: "./node_modules/bs-platform/lib/refmt3.exe",
