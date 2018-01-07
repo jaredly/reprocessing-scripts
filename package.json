@@ -1,6 +1,6 @@
 {
   "name": "reprocessing-scripts",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "bin": {
     "rsb": "./rsb.sh"
   },
@@ -12,6 +12,7 @@
   "scripts": {
     "build": "bsb -make-world -backend native",
     "watch": "bsb -make-world -backend native -w",
+    "postinstall": "bsb -make-world -backend native",
     "clean": "bsb -clean-world"
   },
   "dependencies": {
