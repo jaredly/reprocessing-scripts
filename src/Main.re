@@ -40,7 +40,7 @@ let main = (bsconfig) => switch (Sys.argv) {
 }
 | [|_, "native"|] => Native.byte() |> ignore
 | [|_, "native:hot"|] => Native.hot(bsconfig)
-| [|_, "native:bundle"|] => {Native.run();Native.bundle()}
+| [|_, "native:bundle"|] => {Native.run();Native.bundle(bsconfig)}
 | [|_, "ios"|] => IOS.both()
 | [|_, "android"|] => Android.both()
 | [|_, "android:run"|] => {Android.both(); Android.install() |> ignore}
