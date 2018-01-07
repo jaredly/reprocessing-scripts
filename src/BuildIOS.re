@@ -34,16 +34,18 @@ let buildForArch = (~suffixed=true, cross, xcode, arch, sdkName) => {
     BuildUtils.copyDeep("./node_modules/reprocessing-scripts/templates/ios", "./ios");
   };
 
+  let iosDir = BuildUtils.findNodeModule("@jaredly/reasongl-ios", "./node_modules") |> Builder.unwrap("unable to find reasongl-ios dependency");
+
   Builder.compile(Builder.{
     name: suffixed ? "reasongl_" ++ arch : "reasongl",
     shared: false,
     mainFile: "./src/ios.re",
-    cOpts: "-arch " ++ arch ++ " -isysroot " ++ sdk ++ " -isystem " ++ ocaml ++ "/lib/ocaml -DCAML_NAME_SPACE -I./node_modules/@jaredly/reasongl-ios/ios -I" ++ ocaml ++ "/lib/ocaml/caml -fno-objc-arc -miphoneos-version-min=7.0",
-    mlOpts: "bigarray.cmxa -verbose",
+    cOpts: "-arch " ++ arch ++ " -isysroot " ++ sdk ++ " -isystem " ++ ocaml ++ "/lib/ocaml -DCAML_NAME_SPACE -I" ++ Filename.concat(iosDir, "ios") ++ " -I" ++ ocaml ++ "/lib/ocaml/caml -fno-objc-arc -miphoneos-version-min=7.0",
+    mlOpts: "bigarray.cmxa",
     dependencyDirs: [
-      "./node_modules/@jaredly/reasongl-interface/src",
-      "./node_modules/@jaredly/reasongl-ios/src",
-      "./node_modules/@jaredly/reprocessing/src"
+      Filename.concat(BuildUtils.findNodeModule("@jaredly/reasongl-interface", "./node_modules") |> unwrap("unable to find reasongl-interface dependency"), "src"),
+      Filename.concat(iosDir, "src"),
+      Filename.concat(BuildUtils.findNodeModule("@jaredly/reprocessing", "./node_modules") |> unwrap("unable to find reprocessing dependency"), "src"),
     ],
     buildDir: "_build/ios_" ++ arch,
     env: makeEnv(cross, xcode, arch) ++ " BSB_BACKEND=native-ios",

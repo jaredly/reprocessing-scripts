@@ -13,6 +13,20 @@ let makeEnv = (arch, abi, ndk1, full) => {
   "OCAMLLIB=\"" ++ sysroot ++ "/lib/ocaml\" CAML_BYTERUN=\"" ++ sysroot ++ "/bin/ocamlrun\" CAML_BYTECC=\"" ++ cc ++ " -O2 -fno-defer-pop -Wall-D_FILE_OFFSET_BITS=64 -D_REENTRANT -fPIC\" CAML_NATIVECC=\"" ++ cc ++ " -O2 -Wall -D_FILE_OFFSET_BITS=64 -D_REENTRANT -fPIC\" CAML_MKDLL=\"" ++ cc ++ " -O2 -shared\" CAML_MKMAINDLL=\"" ++ cc ++ " -O2 -shared\" CAML_MKEXE=\"" ++ cc ++ " -O2\" CAML_PACKLD=\"" ++ darwin_ndk ++ "/bin/" ++ full ++ "-ld --sysroot " ++ ndk ++ "/platforms/android-24/arch-" ++ arch ++ " -L" ++ ndk ++ "/lib -L" ++ ndk ++ "/sources/cxx-stl/gnu-libstdc++/4.9/libs/" ++ abi ++ " -L" ++ sysroot ++ "/lib -r  -o\" CAML_RANLIB=" ++ darwin_ndk ++ "/bin/" ++ full ++ "-ranlib CAML_ASM=" ++ darwin_ndk ++ "/bin/" ++ full ++ "-as";
 };
 
+let fixSettingsGradle = (settingsGradle, reasonglAndroidDir) => {
+  let text = ReasonCliTools.Files.readFile(settingsGradle)
+  |> Builder.unwrap("./android/settings.gradle not found!");
+  let lines = Str.split(Str.regexp("\n"), text)
+  |> List.map(
+    line => switch (Str.search_forward(Str.regexp("reasongl-android/android"), line, 0)) {
+    | exception Not_found => line
+    | _ => "project(':reasongl-android').projectDir = new File(rootProject.projectDir, '" ++ String.escaped(Filename.concat(Filename.concat("..", reasonglAndroidDir), "android")) ++ "') // GENERATED"
+    }
+  );
+  let contents = String.concat("\n", lines);
+  ReasonCliTools.Files.writeFile(settingsGradle, contents) |> ignore;
+};
+
 let buildForArch = (arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
   let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
   let ndk = try (Sys.getenv("ANDROID_NDK")) {
@@ -46,6 +60,11 @@ let buildForArch = (arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
     BuildUtils.copyDeep("./node_modules/reprocessing-scripts/templates/android", "./android");
   };
 
+  let androidDir = BuildUtils.findNodeModule("@jaredly/reasongl-android", "./node_modules") |> Builder.unwrap("unable to find reasongl-android dependency");
+
+  print_endline(Unix.getcwd());
+  fixSettingsGradle("./android/settings.gradle", androidDir);
+
   Builder.compile(Builder.{
     name: "reasongl",
     shared: true,
@@ -61,7 +80,11 @@ let buildForArch = (arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
       ++ " -I" ++ ocaml ++ "/lib/ocaml -L"
       ++ ocaml ++ "/lib",
     mlOpts: "-runtime-variant _pic -g",
-    dependencyDirs: ["./node_modules/@jaredly/reasongl-interface/src", "./node_modules/@jaredly/reasongl-android/src", "./node_modules/@jaredly/reprocessing/src"],
+    dependencyDirs: [
+      Filename.concat(BuildUtils.findNodeModule("@jaredly/reasongl-interface", "./node_modules") |> unwrap("unable to find reasongl-interface dependency"), "src"),
+      Filename.concat(androidDir, "src"),
+      Filename.concat(BuildUtils.findNodeModule("@jaredly/reprocessing", "./node_modules") |> unwrap("unable to find reprocessing dependency"), "src"),
+    ],
     buildDir: "_build/android_" ++ arch,
     env: env ++ " BSB_BACKEND=native-android",
 

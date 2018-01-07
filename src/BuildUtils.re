@@ -20,6 +20,7 @@ let copy = (source, dest) => {
 
 let exists = path => try {Unix.stat(path) |> ignore; true} {
 | Unix.Unix_error(Unix.ENOENT, _, _) => false
+| Unix.Unix_error(Unix.ENOTDIR, _, _) => false
 };
 
 let readdir = (dir) => {
@@ -100,12 +101,14 @@ let readCommand = (command) => {
 let showCommand = (~echo=false, command) => {
   /* print_endline(command); */
   let chan = Unix.open_process_in(command);
+  let output = ref("");
   try {
     let rec loop = () => {
       switch (Pervasives.input_line(chan)) {
       | exception End_of_file => ()
       | line => {
         if (echo) print_endline(line);
+        output := output^ ++ line ++ "\n";
         loop()
       }
       }
@@ -117,6 +120,8 @@ let showCommand = (~echo=false, command) => {
     | WSIGNALED(_)
     | WSTOPPED(_) =>
       print_endline("Command " ++ command ++ " ended with non-zero exit code");
+      print_newline();
+      print_endline(output^);
       false
     }
   } {
@@ -211,9 +216,9 @@ let keepAlive = (name, cmd, args) => {
   (poll, close)
 };
 
-let rec findNodeModule = (name, base) => {
-  if (exists(base)) {
-    let full = Filename.concat(base, name);
+let rec findNodeModule = (needle, base) => {
+  if (exists(base) && ReasonCliTools.Files.isDirectory(base)) {
+    let full = Filename.concat(base, needle);
     if (ReasonCliTools.Files.isDirectory(full)) {
       Some(full)
     } else {
@@ -222,7 +227,7 @@ let rec findNodeModule = (name, base) => {
         switch (names) {
         | [name, ...rest] => {
           let child = name.[0] == '@' ? name : Filename.concat(name, "node_modules");
-          switch (findNodeModule(name, Filename.concat(base, child))) {
+          switch (findNodeModule(needle, Filename.concat(base, child))) {
           | None => loop(rest)
           | Some(x) => Some(x)
           }
