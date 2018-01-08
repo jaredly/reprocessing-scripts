@@ -47,11 +47,10 @@ let main = (bsconfig) => switch (Sys.argv) {
 | [|_, "native"|] => Native.byte() |> ignore
 | [|_, "native:hot"|] => Native.hot(bsconfig)
 | [|_, "native:bundle"|] => {Native.run();Native.bundle(bsconfig)}
-| [|_, "ios"|] => IOS.both()
-| [|_, "ios:full"|] => {IOS.both(); IOS.xcodebuild()}
-| [|_, "ios:run"|] => {IOS.both(); IOS.xcodebuild(); IOS.startSimulator()}
-| [|_, "android"|] => Android.both()
-| [|_, "android:full"|] => {Android.both(); Android.assemble() |> ignore}
+| [|_, "ios"|] => {IOS.both(); IOS.xcodebuild()}
+| [|_, "ios:sim"|] => {IOS.both(); IOS.xcodebuild(); IOS.startSimulator()}
+| [|_, "ios:device"|] => {IOS.both(); IOS.buildForDevice()}
+| [|_, "android"|] => {Android.both(); Android.assemble() |> ignore}
 | [|_, "android:run"|] => {Android.both(); Android.install() |> ignore}
 | _ => {print_endline(usage); exit(1)}
 };

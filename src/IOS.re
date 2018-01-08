@@ -86,17 +86,42 @@ let both = () => {
   Unix.unlink("ios/libreasongl_x86_64.a");
 };
 
+let ensureSymlink = () => {
+  let iosDir = BuildUtils.findNodeModule("reasongl-ios", "node_modules") |> Builder.unwrap("Package reasongl-ios not found");
+  if (BuildUtils.exists("ios/reprocessing")) {
+    Unix.unlink("ios/reprocessing");
+  };
+  Unix.symlink(Filename.concat("..", Filename.concat(iosDir, "ios")), "ios/reprocessing");
+};
+
 let buildForDevice = () => {
-  "xcodebuild -project=App.xcodeproj -configuration Debug -arch arm64 -sdk iphoneos clean build";
-  "ios-deploy --bundle _build/Debug-iphoneos/App.app --justlaunch"
+  ensureSymlink();
+  ReasonCliTools.Commands.execSync(
+    ~onOut=print_endline,
+    ~cmd="cd ios && xcodebuild -project=App.xcodeproj -configuration Debug -arch arm64 -sdk iphoneos build",
+    ()
+  ) |> BuildUtils.expectSuccess("Unable to build for device");
+  ReasonCliTools.Commands.execSync(
+    ~onOut=print_endline,
+    ~cmd="ios-deploy --bundle ios/_build/Debug-iphoneos/App.app --justlaunch",
+    ()
+  ) |> BuildUtils.expectSuccess("Unable to launch on device");
 };
 
 let xcodebuild = () => {
-  "xcodebuild -project=App.xcodeproj -configuration Debug -arch x86_64 -sdk iphonesimulator clean build";
-  failwith("TODO impl");
+  ensureSymlink();
+  ReasonCliTools.Commands.execSync(
+    ~onOut=print_endline,
+    ~cmd="cd ios && xcodebuild -project=App.xcodeproj -configuration Debug -arch x86_64 -sdk iphonesimulator build",
+    ()
+  ) |> BuildUtils.expectSuccess("Unable to build for simulator");
 };
 
 let startSimulator = () => {
-  "ios-sim launch _build/Debug-iphonesimulator/App.app --devicetypeid 'iPhone-8, 11.1'";
-  failwith("TODO impl");
+  print_endline("Starting simulator");
+  ReasonCliTools.Commands.execSync(
+    ~onOut=print_endline,
+    ~cmd="ios-sim launch ios/_build/Debug-iphonesimulator/App.app --devicetypeid 'iPhone-8, 11.1'",
+    ()
+  ) |> BuildUtils.expectSuccess("Unable to start simulator");
 };

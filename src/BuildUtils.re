@@ -94,6 +94,13 @@ let readCommand = (command) => {
   }
 };
 
+let expectSuccess = (message, (_, success)) => {
+  if (!success) {
+    failwith(message)
+  } else {
+    ()
+  }
+};
 
 /**
  * Show the output of a command, in lines.
