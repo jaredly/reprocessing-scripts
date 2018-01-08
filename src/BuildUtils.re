@@ -71,7 +71,7 @@ let rec copyDeep = (source, dest) => {
  * Get the output of a command, in lines.
  */
 let readCommand = (command) => {
-  /* print_endline(command); */
+  print_endline(command);
   let chan = Unix.open_process_in(command);
   try {
     let rec loop = () => {

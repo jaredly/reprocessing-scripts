@@ -76,7 +76,7 @@ let ocamlopt = config => {
     "%s %s %s %s %s %s -I %s -w -40 -pp '%s --print binary'", /*  -verbose */
     config.env,
     Filename.concat(config.ocamlDir, "bin/ocamlrun"),
-    Filename.concat(config.ocamlDir, "bin/ocamlopt"),
+    Filename.concat(config.ocamlDir, "bin/ocamlc"),
     ppxFlags,
     Str.split(Str.regexp(" "), config.cOpts) |> List.map(x => "-ccopt " ++ x) |> String.concat(" "),
     config.mlOpts,
@@ -90,10 +90,10 @@ let exists = path => try {Unix.stat(path) |> ignore; true} {
 };
 
 let compileMl = (config, force, sourcePath) => {
-  let cmx = Filename.chop_extension(sourcePath) ++ ".cmx";
+  let cmx = Filename.chop_extension(sourcePath) ++ ".cmo";
   if (force || isNewer(sourcePath, cmx)) {
     BuildUtils.readCommand(Printf.sprintf(
-      "%s -c -S -I %s -o %s -impl %s",
+      "%s -c -I %s -o %s -impl %s",
       ocamlopt(config),
       Filename.dirname(sourcePath),
       cmx,
@@ -134,7 +134,8 @@ let compileShared = (config, cmxs, os) => {
   let dest = Filename.concat(config.outDir, "lib" ++ config.name ++ ".so");
   let sourceFiles = [
     Filename.concat(config.ocamlDir, "lib/ocaml/libasmrun.a"),
-    "bigarray.cmxa",
+    "bigarray.cma",
+    "dynlink.cma",
     ...List.append(cmxs, os)
   ];
   BuildUtils.readCommand(Printf.sprintf(
