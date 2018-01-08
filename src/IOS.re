@@ -86,6 +86,17 @@ let both = () => {
   Unix.unlink("ios/libreasongl_x86_64.a");
 };
 
+let buildForDevice = () => {
+  "xcodebuild -project=App.xcodeproj -configuration Debug -arch arm64 -sdk iphoneos clean build";
+  "ios-deploy --bundle _build/Debug-iphoneos/App.app --justlaunch"
+};
+
 let xcodebuild = () => {
+  "xcodebuild -project=App.xcodeproj -configuration Debug -arch x86_64 -sdk iphonesimulator clean build";
+  failwith("TODO impl");
+};
+
+let startSimulator = () => {
+  "ios-sim launch _build/Debug-iphonesimulator/App.app --devicetypeid 'iPhone-8, 11.1'";
   failwith("TODO impl");
 };

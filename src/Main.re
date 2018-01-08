@@ -22,8 +22,14 @@ Usage:
     builds native and bundles
 - rsb ios
     builds for ios
+- rsb ios:full
+    builds for ios & runs xcodebuild
+- rsb ios:run
+    builds for ios & runs xcodebuild & runs it in a simulator
 - rsb android
     builds for android
+- rsb android:full
+    builds for android & runs `./gradlew assembleDebug`
 - rsb android:run
     builds for android & runs `./gradlew installDebug` in the `./android` directory
 
@@ -42,7 +48,10 @@ let main = (bsconfig) => switch (Sys.argv) {
 | [|_, "native:hot"|] => Native.hot(bsconfig)
 | [|_, "native:bundle"|] => {Native.run();Native.bundle(bsconfig)}
 | [|_, "ios"|] => IOS.both()
+| [|_, "ios:full"|] => {IOS.both(); IOS.xcodebuild()}
+| [|_, "ios:run"|] => {IOS.both(); IOS.xcodebuild(); IOS.startSimulator()}
 | [|_, "android"|] => Android.both()
+| [|_, "android:full"|] => {Android.both(); Android.assemble() |> ignore}
 | [|_, "android:run"|] => {Android.both(); Android.install() |> ignore}
 | _ => {print_endline(usage); exit(1)}
 };

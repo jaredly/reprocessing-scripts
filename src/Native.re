@@ -102,6 +102,47 @@ let expectSuccess = (message, (_, success)) => {
 };
 
 open ReasonCliTools;
+let makeIcon = (config, base) => {
+
+  Files.mkdirp("icon.iconset");
+
+  let icon = config |> Json.get("icon")
+  |> Builder.unwrap("No icon in bsconfig.json")
+  |> getString("Expected icon to be a string in bsconfig.json");
+
+  let sips2 = (num) => {
+    let s = string_of_int(num);
+    sips(icon, num, s ++ "x" ++ s);
+    sips(icon, num * 2, s ++ "x" ++ s ++ "@2");
+  };
+  sips2(16);
+  sips2(32);
+  sips2(64);
+  sips2(128);
+  sips2(256);
+  sips2(512);
+
+  Commands.execSync(~cmd="iconutil -c icns icon.iconset", ()) |> expectSuccess("Failed to make icon");
+  Files.removeDeep("icon.iconset");
+  Files.copy(~source="icon.icns", ~dest=base ++ "/Contents/Resources/icon.icns") |> ignore;
+  Files.removeDeep("icon.icns");
+
+};
+
+let fixSharedSDL = (executable, base) => {
+  let (out, success) = Commands.execSync(~cmd="otool -L " ++ executable ++ " | grep libSDL | sed -e 's/(.*//' | sed -e 's/[[:space:]]//g'", ());
+  if (!success) {
+    failwith("Unable to find sdl path");
+  };
+  let sdl = switch out {
+  | [line] => line
+  | _ => failwith("Unable to find sdl path")
+  };
+  Commands.execSync(~cmd="install_name_tool -change " ++ sdl ++ " @executable_path/libSDL2-2.0.0.dylib " ++ executable, ()) |> expectSuccess("Unable to fix sdl path");
+
+  Files.copy(~source=sdl, ~dest=base ++ "/Contents/MacOS/libSDL2-2.0.0.dylib") |> ignore;
+};
+
 let bundle = (config) => {
   let name = config |> Json.get("name")
   |> Builder.unwrap("No name in bsconfig.json")
@@ -114,42 +155,12 @@ let bundle = (config) => {
 
   Files.writeFile(base ++ "/Contents/Info.plist", infoPlist(appName)) |> ignore;
 
-  Files.mkdirp("icon.iconset");
-
-  let icon = config |> Json.get("icon")
-  |> Builder.unwrap("No icon in bsconfig.json")
-  |> getString("Expected icon to be a string in bsconfig.json");
-
-  let sips = sips(icon);
-  sips(16, "16x16");
-  sips(32, "16x16@2x");
-  sips(32, "32x32");
-  sips(64, "32x32@2x");
-  sips(128, "128x128");
-  sips(128 * 2, "128x128@2x");
-  sips(256, "256x256");
-  sips(256 * 2, "256x256@2x");
-  sips(512, "512x512");
-  sips(512 * 2, "512x512@2x");
-  Commands.execSync(~cmd="iconutil -c icns icon.iconset", ()) |> expectSuccess("Failed to make icon");
-  Files.removeDeep("icon.iconset");
-  Files.copy(~source="icon.icns", ~dest=base ++ "/Contents/Resources/icon.icns") |> ignore;
-  Files.removeDeep("icon.icns");
+  makeIcon(config, base);
 
   let executable = base ++ "/Contents/MacOS/" ++ appName;
   Files.copy(~source="./lib/bs/native/prod.native", ~dest=executable) |> ignore;
 
-  let (out, success) = Commands.execSync(~cmd="otool -L " ++ executable ++ " | grep libSDL | sed -e 's/(.*//' | sed -e 's/[[:space:]]//g'", ());
-  if (!success) {
-    failwith("Unable to find sdl path");
-  };
-  let sdl = switch out {
-  | [line] => line
-  | _ => failwith("Unable to find sdl path")
-  };
-  Commands.execSync(~cmd="install_name_tool -change " ++ sdl ++ " @executable_path/libSDL2-2.0.0.dylib " ++ executable, ()) |> expectSuccess("Unable to fix sdl path");
-
-  Files.copy(~source=sdl, ~dest=base ++ "/Contents/MacOS/libSDL2-2.0.0.dylib") |> ignore;
+  fixSharedSDL(executable, base);
   Files.copyDeep(~source="assets", ~dest=base ++ "/Contents/MacOS/assets");
 
   ()

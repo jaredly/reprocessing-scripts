@@ -104,6 +104,11 @@ let both = () => {
   x86();
 };
 
+let assemble = () => {
+  print_endline("Running ./gradlew assembleDebug");
+  BuildUtils.showCommand(~echo=true, "cd android && ./gradlew assembleDebug")
+};
+
 let install = () => {
   print_endline("Running ./gradlew installDebug");
   BuildUtils.showCommand(~echo=true, "cd android && ./gradlew installDebug")
