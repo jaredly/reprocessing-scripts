@@ -282,6 +282,21 @@ let install = () => {
   print_endline("Running ./gradlew installDebug");
   if (!BuildUtils.showCommand(~echo=true, "cd android && ./gradlew installDebug")) {
     failwith("Gradle build failed");
+  };
+};
+
+let getString = (message, t) => switch t {
+| Json.String(s) => s
+| _ => failwith(message)
+};
+
+let run = (config) => {
+  print_endline("Running");
+  let appId = config |> Json.get("androidPackage")
+  |> Builder.unwrap("No androidPackage in bsconfig.json")
+  |> getString("Expected androidPackage to be a string in bsconfig.json");
+  if (!BuildUtils.showCommand(~echo=true, "adb shell monkey -p com.jaredforsyth.reprocessing_example 1")) {
+    failwith("Unable to start app");
   }
 };
 
@@ -306,13 +321,14 @@ let compileLib = mainFile => {
     String.concat(" ", cmos),
     dest
   )) |> Builder.unwrap("Failed to make lib") |> ignore;
-  dest
+  (dest, filesInOrder)
 };
 
-let hot = () => {
+let hot = (config) => {
   build(armv7Config(~byte=true, "./src/androidhot.re"));
   build(x86Config(~byte=true, "./src/androidhot.re"));
   install();
+  run(config);
   HotServer.hotServer(compileLib);
   /* hotServer(); */
 };

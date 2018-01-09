@@ -31,6 +31,76 @@ let stripNewline = n => {
   }
 };
 
+let sendFile = (client, libPath) => {
+  let {Unix.st_size, st_perm} = Unix.stat(libPath);
+  let fs = Unix.openfile(libPath, [Unix.O_RDONLY], st_perm);
+
+  let buffer_size = 8192;
+  let buffer = Bytes.create(buffer_size);
+
+  let head = string_of_int(st_size) ++ ":";
+  Bytes.blit_string(head, 0, buffer, 0, String.length(head));
+  Unix.send(client, buffer, 0, String.length(head), []) |> ignore;
+  let rec copy_loop = () =>
+    switch (Unix.read(fs, buffer, 0, buffer_size)) {
+    | 0 => ()
+    | r =>
+      let left = ref(r);
+      while (left^ > 0) {
+        left := left^ - Unix.send(client, buffer, r - left^, left^, []);
+      };
+      copy_loop()
+    };
+  copy_loop();
+  Unix.close(fs);
+
+};
+
+let minisleep = (sec: float) => ignore(Unix.select([], [], [], sec));
+
+
+let needsRebuild = (lastModifiedTimes, fileNames) =>
+  List.fold_left(
+    (needsRebuild, name) => {
+      /* If a file hasn't been compiled that we expect to be there, we set `notReady` to true
+      * As soon as bucklescript has built it, it will be ready. */
+      let mtime = try (Some(Unix.stat(name).Unix.st_mtime)) {
+      | Unix.Unix_error(Unix.ENOENT, _, _) => {
+        print_endline("File does not exist " ++ name);
+        None
+      }
+      };
+      switch mtime {
+      | None => true
+      | Some(st_mtime) =>
+        if (Hashtbl.mem(lastModifiedTimes, name)) {
+          if (st_mtime > Hashtbl.find(lastModifiedTimes, name)) {
+            Hashtbl.add(lastModifiedTimes, name, st_mtime);
+            true
+          } else {
+            needsRebuild
+          }
+        } else {
+          Hashtbl.add(lastModifiedTimes, name, st_mtime);
+          true
+        }
+      }
+    },
+    false,
+    fileNames
+  );
+
+let watchFiles = (files) => {
+  let lastModifiedTimes = Hashtbl.create(10);
+  List.iter(name => Hashtbl.add(lastModifiedTimes, name, Unix.stat(name).Unix.st_mtime), files);
+
+  while(!needsRebuild(lastModifiedTimes, files)) {
+    minisleep(0.1);
+  };
+
+  /* minisleep(0.1); */
+};
+
 let hotServer = (compile) => {
   let port = 8090;
   let sock = Unix.socket(Unix.PF_INET, Unix.SOCK_STREAM, 0);
@@ -50,41 +120,29 @@ let hotServer = (compile) => {
     switch (parts) {
     | ["android", baseFile] => {
       let baseFile = stripNewline(baseFile);
-      print_endline("Compiling " ++ baseFile ++ ":D");
 
-      let libPath = compile(baseFile);
-      let {Unix.st_size, st_perm} = Unix.stat(libPath);
-      let fs = Unix.openfile(libPath, [Unix.O_RDONLY], st_perm);
+      let rec loop = (filesToWatch) => {
+        print_endline("Compiling " ++ baseFile ++ ":D");
+         switch (compile(baseFile)) {
+         | exception err => {
+           watchFiles(filesToWatch);
+           loop(filesToWatch);
+         }
+         | (libPath, filesToWatch) =>
+         print_endline("Files to watch: " ++ String.concat(" - ", filesToWatch));
+          let died = try { sendFile(client, libPath); false } { | _ => true };
+          Unix.unlink(libPath);
+          if (!died) {
+            watchFiles(filesToWatch);
+            loop(filesToWatch);
+          }
+         }
+      };
 
-      let buffer_size = 8192;
-      let buffer = Bytes.create(buffer_size);
+      loop([baseFile]);
 
-      let head = string_of_int(st_size) ++ ":";
-      Bytes.blit_string(head, 0, buffer, 0, String.length(head));
-      Unix.send(client, buffer, 0, String.length(head), []) |> ignore;
-      /* let fd = Unix.openfile(dest, [Unix.O_WRONLY, Unix.O_CREAT, Unix.O_TRUNC], st_perm); */
-      let rec copy_loop = () =>
-        switch (Unix.read(fs, buffer, 0, buffer_size)) {
-        | 0 => ()
-        | r =>
-          let left = ref(r);
-          while (left^ > 0) {
-            left := left^ - Unix.send(client, buffer, r - left^, left^, []);
-          };
-          copy_loop()
-        };
-      copy_loop();
-      Unix.close(fs);
-
-      /* Unix.close(fd); */
-
-      /* let response = "Hello folks";
-      let total = String.length(response);
-      let left = ref(String.length(response));
-      while (left^ > 0) {
-        left := left^ - Unix.send(client, response, total - left^, left^, []);
-      }; */
       Unix.shutdown(client, Unix.SHUTDOWN_ALL);
+
     }
     | _ => {
       print_endline("Bad request: " ++ request);

@@ -51,8 +51,8 @@ let main = (bsconfig) => switch (Sys.argv) {
 | [|_, "ios:sim"|] => {IOS.both(); IOS.xcodebuild(); IOS.startSimulator()}
 | [|_, "ios:device"|] => {IOS.both(); IOS.buildForDevice()}
 | [|_, "android"|] => {Android.both(); Android.assemble() |> ignore}
-| [|_, "android:run"|] => {Android.both(); Android.install() |> ignore}
-| [|_, "android:hot"|] => {Android.hot()}
+| [|_, "android:run"|] => {Android.both(); Android.install() |> ignore; Android.run(bsconfig)}
+| [|_, "android:hot"|] => {Android.hot(bsconfig)}
 | _ => {print_endline(usage); exit(1)}
 };
 
