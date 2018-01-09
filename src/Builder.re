@@ -163,31 +163,53 @@ let compileShared = (config, cmxs, os) => {
 let compileStatic = (config, cmxs, os) => {
   let ofile = Filename.concat(config.buildDir, "libcustom" ++ ".o");
   let dest = Filename.concat(config.outDir, "lib" ++ config.name ++ ".a");
+  let ext = config.byte ? ".cma" : ".cmxa";
   let sourceFiles = [
     Filename.concat(config.ocamlDir, "lib/ocaml/libasmrun.a"),
-    /* "bigarray.cmx", */
+    "bigarray" ++ ext,
+    /* "unix" ++ ext, */
+    "threads/threads" ++ ext,
     ...List.append(cmxs, os)
   ];
+  /* let sourceFiles = config.byte ? ["dynlink.cma", ...sourceFiles] : sourceFiles; */
   BuildUtils.readCommand(Printf.sprintf(
-    "%s -I %s -I %s -ccopt -lasmrun -cclib -static  -output-obj %s -o %s",
+    "%s -I %s -I %s -cclib -lasmrun -ccopt -lasmrun -cclib -static -output-obj %s -o %s",
     ocamlopt(config),
     config.buildDir,
     config.ocamlDir,
     String.concat(" ", sourceFiles),
-    ofile
+    "libcustom.o"
   )) |> unwrap(
     "Failed to build " ++ dest
   ) |> ignore;
+  BuildUtils.copy("libcustom.o", ofile);
+  Unix.unlink("libcustom.o");
   BuildUtils.copy(
     Filename.concat(config.ocamlDir, "lib/ocaml/libasmrun.a"),
     dest
   );
+  let staticDir = Filename.concat(config.buildDir, "static_as");
+  BuildUtils.mkdirp(staticDir);
+  /* BuildUtils.readCommand("cd static_as && ar -x " ++ config.ocamlDir ++ "/lib/ocaml/libunix.a")
+  |> unwrap("failed to get unix stuff") |> ignore; */
+  BuildUtils.readCommand("cd " ++ staticDir ++ " && ar -x " ++ config.ocamlDir ++ "/lib/ocaml/libbigarray.a")
+  |> unwrap("failed to get unix stuff") |> ignore;
+  BuildUtils.readCommand("cd " ++ staticDir ++ " && ar -x " ++ config.ocamlDir ++ "/lib/ocaml/libthreads.a")
+  |> unwrap("failed to get unix stuff") |> ignore;
+  let os = os @ (
+    ReasonCliTools.Files.readDirectory(staticDir)
+    |> List.filter(x => Filename.check_suffix(x, ".o"))
+    |> List.map(Filename.concat(staticDir))
+  );
+
   BuildUtils.readCommand(Printf.sprintf(
     "ar -r %s %s %s",
     dest,
     String.concat(" ", os),
     ofile
   )) |> unwrap("failed to link") |> ignore;
+
+  ReasonCliTools.Files.removeDeep(staticDir);
 };
 
 let mapNewer = (fn, files) => {
