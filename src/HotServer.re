@@ -12,6 +12,14 @@
  * creates a .cma, and sends it over prepended by length as an int, and then the contents.
  */
 
+let myIp = () => {
+  let mydir = BuildUtils.findNodeModule("reprocessing-scripts", "node_modules") |> Builder.unwrap("Could not find reprocessing-scripts directory in node_modules");
+  switch (BuildUtils.readCommand("node " ++ mydir ++ "/my-ip.js")) {
+  | Some([ip]) => ip
+  | _ => failwith("Unable to determine own IP address")
+  }
+};
+
 let recv = (client, maxlen) => {
   let bytes = Bytes.create(maxlen);
   let len = Unix.recv(client, bytes, 0, maxlen, []);
