@@ -52,6 +52,7 @@ let main = (bsconfig) => switch (Sys.argv) {
 | [|_, "ios:device"|] => {IOS.both(); IOS.buildForDevice()}
 | [|_, "android"|] => {Android.both(); Android.assemble() |> ignore}
 | [|_, "android:run"|] => {Android.both(); Android.install() |> ignore}
+| [|_, "android:hot"|] => {Android.hot()}
 | _ => {print_endline(usage); exit(1)}
 };
 

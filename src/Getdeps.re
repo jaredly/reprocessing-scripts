@@ -100,13 +100,15 @@ let resolveDependencyOrder = (depsList, mainFile) => {
   sorted
 };
 
-let sortSourceFilesInDependencyOrder = (sourceFiles, mainFile, ~ocamlDir, ~refmt) => {
+let sortSourceFilesInDependencyOrder = (sourceFiles, mainFile, ~ocamlDir, ~refmt, ~ppx, ~env) => {
   let cmd =
     Printf.sprintf(
-      "%s %s -pp '%s --print binary' -ml-synonym .re -I %s -one-line -native %s",
+      "%s %s %s -pp '%s --print binary' %s -ml-synonym .re -I %s -one-line -native %s",
+      env,
       Filename.concat(ocamlDir, "bin/ocamlrun"),
       Filename.concat(ocamlDir, "bin/ocamldep"),
       refmt,
+      String.concat(" ", List.map(m => "-ppx " ++ m, ppx)),
       Filename.dirname(mainFile),
       String.concat(" ", sourceFiles)
     );

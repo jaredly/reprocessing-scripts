@@ -43,6 +43,7 @@ let unwrap = (message, opt) => switch opt { | None => failwith(message) | Some(x
 
 type config = {
   name: string,
+  byte: bool,
   env: string,
   mainFile: string,
   cOpts: string,
@@ -59,14 +60,14 @@ type config = {
 
 let isSourceFile = x => Filename.check_suffix(x, ".re") || Filename.check_suffix(x, ".ml");
 
-let copyAndSort = ({mainFile, dependencyDirs, buildDir, ocamlDir, refmt}) => {
+let copyAndSort = ({env, mainFile, dependencyDirs, buildDir, ocamlDir, refmt, ppx}) => {
   try (Unix.stat(buildDir) |> ignore) {
   | Unix.Unix_error(Unix.ENOENT, _, _) => Unix.mkdir(buildDir, 0o740);
   };
   let allNames = List.map(dirname => copyDirContents(dirname, buildDir), [Filename.dirname(mainFile), ...dependencyDirs]) |> List.concat;
   let mainFileName = Filename.concat(buildDir, Filename.basename(mainFile));
   let reasonOrOcamlFiles = List.filter(isSourceFile, allNames);
-  let filesInOrder = unwrap("Failed to run ocamldep", Getdeps.sortSourceFilesInDependencyOrder(~ocamlDir, ~refmt, reasonOrOcamlFiles, mainFileName));
+  let filesInOrder = unwrap("Failed to run ocamldep", Getdeps.sortSourceFilesInDependencyOrder(~ocamlDir, ~refmt, ~ppx, ~env, reasonOrOcamlFiles, mainFileName));
   (allNames, filesInOrder)
 };
 
@@ -76,7 +77,7 @@ let ocamlopt = config => {
     "%s %s %s %s %s %s -I %s -w -40 -pp '%s --print binary'", /*  -verbose */
     config.env,
     Filename.concat(config.ocamlDir, "bin/ocamlrun"),
-    Filename.concat(config.ocamlDir, "bin/ocamlc"),
+    Filename.concat(config.ocamlDir, config.byte ? "bin/ocamlc" : "bin/ocamlopt"),
     ppxFlags,
     Str.split(Str.regexp(" "), config.cOpts) |> List.map(x => "-ccopt " ++ x) |> String.concat(" "),
     config.mlOpts,
@@ -90,11 +91,12 @@ let exists = path => try {Unix.stat(path) |> ignore; true} {
 };
 
 let compileMl = (config, force, sourcePath) => {
-  let cmx = Filename.chop_extension(sourcePath) ++ ".cmo";
+  let cmx = Filename.chop_extension(sourcePath) ++ (config.byte ? ".cmo" : ".cmx");
   if (force || isNewer(sourcePath, cmx)) {
     BuildUtils.readCommand(Printf.sprintf(
-      "%s -c -I %s -o %s -impl %s",
+      "%s -c -thread %s -I %s -o %s -impl %s",
       ocamlopt(config),
+      config.byte ? "" : "-S",
       Filename.dirname(sourcePath),
       cmx,
       sourcePath
@@ -132,21 +134,30 @@ let compileC = (config, force, sourcePath) => {
 
 let compileShared = (config, cmxs, os) => {
   let dest = Filename.concat(config.outDir, "lib" ++ config.name ++ ".so");
+  let initial = "lib" ++ config.name ++ ".so";
+
+  let ext = config.byte ? ".cma" : ".cmxa";
   let sourceFiles = [
-    Filename.concat(config.ocamlDir, "lib/ocaml/libasmrun.a"),
-    "bigarray.cma",
-    "dynlink.cma",
+    /* Filename.concat(config.ocamlDir, "lib/ocaml/libasmrun.a"), */
+    "bigarray" ++ ext,
+    "unix" ++ ext,
+    "threads/threads" ++ ext,
     ...List.append(cmxs, os)
   ];
+  let sourceFiles = config.byte ? ["dynlink.cma", ...sourceFiles] : sourceFiles;
+
   BuildUtils.readCommand(Printf.sprintf(
     "%s -I %s -output-obj %s -o %s",
     ocamlopt(config),
     config.buildDir,
     String.concat(" ", sourceFiles),
-    dest
+    initial
   )) |> unwrap(
-    "Failed to build " ++ dest
+    "Failed to build " ++ initial
   ) |> ignore;
+  ReasonCliTools.Files.copy(~source=initial, ~dest=dest) |> ignore;
+  Unix.unlink(initial);
+  Unix.unlink("lib" ++ config.name ++ ".cds");
 };
 
 let compileStatic = (config, cmxs, os) => {

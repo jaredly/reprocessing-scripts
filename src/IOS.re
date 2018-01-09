@@ -38,6 +38,7 @@ let buildForArch = (~suffixed=true, cross, xcode, arch, sdkName) => {
 
   Builder.compile(Builder.{
     name: suffixed ? "reasongl_" ++ arch : "reasongl",
+    byte: false,
     shared: false,
     mainFile: "./src/ios.re",
     cOpts: "-arch " ++ arch ++ " -isysroot " ++ sdk ++ " -isystem " ++ ocaml ++ "/lib/ocaml -DCAML_NAME_SPACE -I" ++ Filename.concat(iosDir, "ios") ++ " -I" ++ ocaml ++ "/lib/ocaml/caml -fno-objc-arc -miphoneos-version-min=7.0",
