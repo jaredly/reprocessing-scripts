@@ -198,8 +198,8 @@ let x86Config = (~byte, entry) => {
 };
 
 let both = () => {
-  build(armv7Config(~byte=true, "./src/android.re"));
-  build(x86Config(~byte=true, "./src/android.re"));
+  build(armv7Config(~byte=false, "./src/android.re"));
+  build(x86Config(~byte=false, "./src/android.re"));
 };
 
 let assemble = () => {
