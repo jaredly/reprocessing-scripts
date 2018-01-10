@@ -12,7 +12,7 @@ let makeEnv = (cross, xcode, arch) => {
    CAML_ASM=\"" ++ cc ++ " -c\"";
 };
 
-let buildForArch = (~suffixed=true, cross, xcode, arch, sdkName) => {
+let buildForArch = (~byte=false, ~suffixed=true, cross, xcode, arch, sdkName) => {
   let sdk = xcode ++ "/Platforms/" ++ sdkName ++ ".platform/Developer/SDKs/" ++ sdkName ++ ".sdk";
 
   let ocaml = cross ++ "/ios-" ++ arch;
@@ -38,21 +38,26 @@ let buildForArch = (~suffixed=true, cross, xcode, arch, sdkName) => {
 
   Builder.compile(Builder.{
     name: suffixed ? "reasongl_" ++ arch : "reasongl",
+    byte,
     shared: false,
     mainFile: "./src/ios.re",
     cOpts: "-arch " ++ arch ++ " -isysroot " ++ sdk ++ " -isystem " ++ ocaml ++ "/lib/ocaml -DCAML_NAME_SPACE -I" ++ Filename.concat(iosDir, "ios") ++ " -I" ++ ocaml ++ "/lib/ocaml/caml -fno-objc-arc -miphoneos-version-min=7.0",
-    mlOpts: "bigarray.cmxa",
+    mlOpts: "",
+    /* (byte ? "bigarray.cma dynlink.cma unix.cma" : "bigarray.cmxa"), */
     dependencyDirs: [
       Filename.concat(BuildUtils.findNodeModule("@jaredly/reasongl-interface", "./node_modules") |> unwrap("unable to find reasongl-interface dependency"), "src"),
       Filename.concat(iosDir, "src"),
       Filename.concat(BuildUtils.findNodeModule("@jaredly/reprocessing", "./node_modules") |> unwrap("unable to find reprocessing dependency"), "src"),
     ],
     buildDir: "_build/ios_" ++ arch,
-    env: makeEnv(cross, xcode, arch) ++ " BSB_BACKEND=native-ios",
+    env: makeEnv(cross, xcode, arch) ++ " BSB_BACKEND=" ++ (byte ? "byte-ios" : "native-ios") ++ " LOCAL_IP=" ++ HotServer.myIp(),
 
     cc: xcode ++ "/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
     outDir: "./ios/",
-    ppx: [Filename.concat(BuildUtils.findMatchenv(), "matchenv")],
+    ppx: [
+      Filename.concat(BuildUtils.findMatchenv(), "matchenv"),
+      Filename.concat(BuildUtils.findPpxEnv(), "ppx-env"),
+    ],
     ocamlDir: ocaml,
     refmt: "./node_modules/bs-platform/lib/refmt3.exe",
   });

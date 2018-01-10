@@ -17,11 +17,11 @@
   },
   "dependencies": {
     "bs-platform": "bsansouci/bsb-native#fast",
-    "webpack": "*",
-    "ios-sim": "*",
-    "ios-deploy": "*",
+    "ios-deploy": "1.9.2",
+    "ios-sim": "6.1.2",
     "reason-cli-tools": "^1.0.3",
     "reason-simple-server": "^1.0.2",
-    "rex-json": "^1.0.2"
+    "rex-json": "^1.0.2",
+    "webpack": "3.10.0"
   }
 }

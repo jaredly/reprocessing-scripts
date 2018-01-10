@@ -255,3 +255,10 @@ let findMatchenv = () => {
   | Some(x) => x
   }
 };
+
+let findPpxEnv = () => {
+  switch (findNodeModule("ppx-env", "node_modules")) {
+  | None => failwith("ppx-env not found - it should be installed as a dependency of reasongl-android")
+  | Some(x) => x
+  }
+};
