@@ -22,11 +22,11 @@ Usage:
 - rsb ios:run
     builds for ios & runs xcodebuild & runs it in a simulator
 - rsb android
-    builds for android
-- rsb android:full
     builds for android & runs `./gradlew assembleDebug`
 - rsb android:run
     builds for android & runs `./gradlew installDebug` in the `./android` directory
+- rsb android:hot
+    builds for android & runs `./gradlew installDebug`, then sets up a hot-reloading server and watches your files.
 ```
 
 ## Future desired changes
