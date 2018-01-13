@@ -107,6 +107,8 @@ let hot = () => {
       if (search(text, "Finish compiling")) {
         print_endline("Static server on http://localhost:3451");
 
+        let dead = ref([]);
+
         Hashtbl.iter((id, (filePath, socket)) => {
           print_endline("Here" ++ filePath);
           let text = try (Some(Packre.Pack.process(~externalEverything=true, ~renames=[], jsFile("." ++ filePath)))) {
@@ -115,7 +117,7 @@ let hot = () => {
               None
             }
           };
-          let prevCode = switch (Hashtbl.find(previous, filePath)) {
+          let prevCode = switch (Hashtbl.find(previous, filePath ++ id)) {
           | exception Not_found => ""
           | x => x
           };
@@ -126,11 +128,14 @@ let hot = () => {
           }
           | Some(text) =>
             print_endline("Rebuilt the js bundle for " ++ filePath);
-            Hashtbl.replace(previous, filePath, text);
-            sendHot(socket, text);
+            Hashtbl.replace(previous, filePath ++ id, text);
+            try (sendHot(socket, text)) {
+            | _ => dead := [id, ...dead^]
+            };
           };
 
-        }, parked)
+        }, parked);
+        List.iter(id => Hashtbl.remove(parked, id), dead^)
       } else {print_endline("<no match>")};
 
       ()
@@ -151,8 +156,8 @@ let hot = () => {
         | [filePath, id] => {
           if (ReasonCliTools.Files.exists("." ++ filePath)) {
             Some(Custom(socket => {
-              let code = Packre.Pack.process(~renames=[], jsFile("." ++ filePath));
-              Hashtbl.replace(previous, filePath, code);
+              let code = Packre.Pack.process(~externalEverything=true, ~renames=[], jsFile("." ++ filePath));
+              Hashtbl.replace(previous, filePath ++ id, code);
               sendHot(socket, code);
             }));
           } else {
