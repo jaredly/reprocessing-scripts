@@ -22,7 +22,7 @@
     "minimist.re": "^0.0.3",
     "pack.re": "^0.0.8",
     "reason-cli-tools": "^1.0.3",
-    "reason-simple-server": "^1.1.0",
+    "reason-simple-server": "^1.2.0",
     "rex-json": "^1.1.0"
   }
 }
