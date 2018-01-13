@@ -91,9 +91,14 @@ let both = () => {
   Unix.unlink("ios/libreasongl_x86_64.a");
 };
 
+let isLink = (path) => switch (Unix.readlink(path)) {
+| exception _ => false
+| _ => true
+};
+
 let ensureSymlink = () => {
   let iosDir = BuildUtils.findNodeModule("reasongl-ios", "node_modules") |> Builder.unwrap("Package reasongl-ios not found");
-  if (BuildUtils.exists("ios/reprocessing")) {
+  if (isLink("ios/reprocessing")) {
     Unix.unlink("ios/reprocessing");
   };
   Unix.symlink(Filename.concat("..", Filename.concat(iosDir, "ios")), "ios/reprocessing");
