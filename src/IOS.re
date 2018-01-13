@@ -99,34 +99,46 @@ let ensureSymlink = () => {
   Unix.symlink(Filename.concat("..", Filename.concat(iosDir, "ios")), "ios/reprocessing");
 };
 
-let buildForDevice = () => {
+let getAppName = config => {
+  let (|>>) = Json.bind;
+  config |> Json.get("iosPathName")
+  |>> Json.string
+  |> fun
+  | None => "App"
+  | Some(x) => x
+};
+
+let buildForDevice = (bsconfig) => {
   ensureSymlink();
+  let appName = getAppName(bsconfig);
   ReasonCliTools.Commands.execSync(
     ~onOut=print_endline,
-    ~cmd="cd ios && xcodebuild -project=App.xcodeproj -configuration Debug -arch arm64 -sdk iphoneos build",
+    ~cmd="cd ios && xcodebuild -project=" ++ appName ++ ".xcodeproj -configuration Debug -arch arm64 -sdk iphoneos build",
     ()
   ) |> BuildUtils.expectSuccess("Unable to build for device");
   ReasonCliTools.Commands.execSync(
     ~onOut=print_endline,
-    ~cmd="ios-deploy --bundle ios/_build/Debug-iphoneos/App.app --justlaunch",
+    ~cmd="ios-deploy --bundle ios/_build/Debug-iphoneos/" ++ appName ++ ".app --justlaunch",
     ()
   ) |> BuildUtils.expectSuccess("Unable to launch on device");
 };
 
-let xcodebuild = () => {
+let xcodebuild = (bsconfig) => {
   ensureSymlink();
+  let appName = getAppName(bsconfig);
   ReasonCliTools.Commands.execSync(
     ~onOut=print_endline,
-    ~cmd="cd ios && xcodebuild -project=App.xcodeproj -configuration Debug -arch x86_64 -sdk iphonesimulator build",
+    ~cmd="cd ios && xcodebuild -project=" ++ appName ++ ".xcodeproj -configuration Debug -arch x86_64 -sdk iphonesimulator build",
     ()
   ) |> BuildUtils.expectSuccess("Unable to build for simulator");
 };
 
-let startSimulator = () => {
+let startSimulator = (bsconfig) => {
+  let appName = getAppName(bsconfig);
   print_endline("Starting simulator");
   ReasonCliTools.Commands.execSync(
     ~onOut=print_endline,
-    ~cmd="ios-sim launch ios/_build/Debug-iphonesimulator/App.app --devicetypeid 'iPhone-8, 11.1'",
+    ~cmd="ios-sim launch ios/_build/Debug-iphonesimulator/" ++ appName ++ ".app --devicetypeid 'iPhone-8, 11.1'",
     ()
   ) |> BuildUtils.expectSuccess("Unable to start simulator");
 };

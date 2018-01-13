@@ -224,7 +224,7 @@ let run = (config) => {
   let appId = config |> Json.get("androidPackage")
   |> Builder.unwrap("No androidPackage in bsconfig.json")
   |> getString("Expected androidPackage to be a string in bsconfig.json");
-  if (!BuildUtils.showCommand(~echo=true, "adb shell monkey -p com.jaredforsyth.reprocessing_example 1")) {
+  if (!BuildUtils.showCommand(~echo=true, "adb shell monkey -p " ++ appId ++ " 1")) {
     failwith("Unable to start app");
   }
 };

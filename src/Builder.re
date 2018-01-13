@@ -132,6 +132,7 @@ let compileC = (config, force, sourcePath) => {
   };
 };
 
+open ReasonCliTools;
 let compileShared = (config, cmxs, os) => {
   let dest = Filename.concat(config.outDir, "lib" ++ config.name ++ ".so");
   let initial = "lib" ++ config.name ++ ".so";
@@ -155,9 +156,12 @@ let compileShared = (config, cmxs, os) => {
   )) |> unwrap(
     "Failed to build " ++ initial
   ) |> ignore;
-  ReasonCliTools.Files.copy(~source=initial, ~dest=dest) |> ignore;
+  Files.copy(~source=initial, ~dest=dest) |> ignore;
   Unix.unlink(initial);
-  Unix.unlink("lib" ++ config.name ++ ".cds");
+  let cds = "lib" ++ config.name ++ ".cds";
+  if (Files.exists(cds)) {
+    Unix.unlink(cds);
+  };
 };
 
 let compileStatic = (config, cmxs, os) => {
