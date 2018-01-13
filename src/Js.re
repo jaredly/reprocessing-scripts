@@ -65,6 +65,11 @@ let sendHot = (client, script) => {
   Unix.shutdown(client, Unix.SHUTDOWN_ALL);
 };
 
+let startsWith = (string, prefix) => String.length(prefix) < String.length(string) && String.sub(string, 0, String.length(prefix)) == prefix;
+let sliceToEnd = (string, num) => String.sub(string, num, String.length(string) - num);
+
+
+
 let hot = () => {
   ensurePublic();
   if (Builder.exists("assets")) {
@@ -79,59 +84,98 @@ let hot = () => {
   /* BuildUtils.showCommand("open http://localhost:3451") |> ignore; */
   print_endline("Static server on http://localhost:3451");
 
-  let previous = ref(Packre.Pack.process(~externalEverything=true, ~renames=[], "./lib/js/src/web.js"));
+  /* let previous = ref(Packre.Pack.process(~externalEverything=true, ~renames=[], "./lib/js/src/web.js")); */
 
-  let waitingToSend = ref(Some(previous^));
-  let waitingSocket = ref(None);
+  let previous = Hashtbl.create(5);
+
+  let parked = Hashtbl.create(5);
+
+  /* let waitingToSend = ref(Some(previous^));
+  let waitingSocket = ref(None); */
+
+  let jsFile = reFile => Filename.concat("./lib/js", Filename.chop_extension(reFile) ++ ".js");
+
+  let search = (string, needle) => switch (Str.search_forward(Str.regexp(needle), string, 0)) {
+  | exception Not_found => false
+  | _ => true
+  };
 
   let bsb = ReasonCliTools.Commands.exec(
     ~cmd=bsbCommand ++ " -w",
     ~onOut=text => {
       print_endline(text);
-      print_endline("Static server on http://localhost:3451");
-      let text = try (Some(Packre.Pack.process(~externalEverything=true, ~renames=[], "./lib/js/src/web.js"))) {
-      | Failure(message) => None
-      };
-      switch text {
-      | None => print_endline("Pack.re bundling failed")
-      | Some(text) when text == previous^ => {
-        print_endline("Rebuilt but same");
-      }
-      | Some(text) =>
-        print_endline("Rebuilt the js bundle");
-        previous := text;
-        switch waitingSocket^ {
-        | None => waitingToSend := Some(text)
-        | Some(socket) =>
-          waitingSocket := None;
-          sendHot(socket, text);
-        };
-      };
+      if (search(text, "Finish compiling")) {
+        print_endline("Static server on http://localhost:3451");
+
+        Hashtbl.iter((id, (filePath, socket)) => {
+          print_endline("Here" ++ filePath);
+          let text = try (Some(Packre.Pack.process(~externalEverything=true, ~renames=[], jsFile("." ++ filePath)))) {
+          | Failure(message) => {
+            print_endline("Failed to build");
+              None
+            }
+          };
+          let prevCode = switch (Hashtbl.find(previous, filePath)) {
+          | exception Not_found => ""
+          | x => x
+          };
+          switch text {
+          | None => print_endline("Pack.re bundling failed")
+          | Some(text) when text == prevCode => {
+            print_endline("Rebuilt but same " ++ filePath);
+          }
+          | Some(text) =>
+            print_endline("Rebuilt the js bundle for " ++ filePath);
+            Hashtbl.replace(previous, filePath, text);
+            sendHot(socket, text);
+          };
+
+        }, parked)
+      } else {print_endline("<no match>")};
+
       ()
     }
   );
 
+  open ReasonSimpleServer.Basic.Response;
+
+  /* TODO if there are problems with multiple changes happening in succession and the
+     hot client only getting the first one, then I'll want to go back to tracking
+     pending stuff.... */
   ReasonSimpleServer.Static.run(
     ~extraHandler=(method, path, headers) => {
       switch (method, path) {
-      | ("GET", "/hot.js") =>
-        Some(ReasonSimpleServer.Basic.Response.Custom(socket => {
-          print_endline("Hot hot");
-          switch waitingToSend^ {
-          | Some(body) => {
-            waitingToSend := None;
-            sendHot(socket, body);
+      | ("GET", path) when startsWith(path, "/hot-first/") =>
+        let path = sliceToEnd(path, String.length("/hot-first"));
+        switch (Str.split(Str.regexp("\\?"), path)) {
+        | [filePath, id] => {
+          if (ReasonCliTools.Files.exists("." ++ filePath)) {
+            Some(Custom(socket => {
+              let code = Packre.Pack.process(~renames=[], jsFile("." ++ filePath));
+              Hashtbl.replace(previous, filePath, code);
+              sendHot(socket, code);
+            }));
+          } else {
+            Some(Bad(404, "No such resaon file exists"))
           }
-          | None => {
-            print_endline("nothing yet");
-            waitingSocket := Some(socket)
+        }
+        | _ => Some(Bad(400, "Need a ?adfjl id suffix"))
+        }
+      | ("GET", path) when startsWith(path, "/hot/") =>
+        let path = sliceToEnd(path, String.length("/hot"));
+        switch (Str.split(Str.regexp("\\?"), path)) {
+        | [filePath, id] => {
+          if (ReasonCliTools.Files.exists("." ++ filePath)) {
+            Some(Custom(socket => {
+              Hashtbl.replace(parked, id, (filePath, socket))
+            }));
+          } else {
+            Some(Bad(404, "No such resaon file exists"))
           }
-          };
-          /* chill */
-        }))
+        }
+        | _ => Some(Bad(400, "Need a ?adfjl id suffix"))
+        }
       | ("GET", "/assets/bundle.js") => {
-        /* If the user reloaded the page, be ready to send up a new hot.js */
-        let waitingToSend = ref(Some(previous^));
         print_endline("Getting main bundle");
         Some(ReasonSimpleServer.Basic.Response.Ok("application/javascript", initialBundle))
       }
