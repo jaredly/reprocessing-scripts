@@ -138,7 +138,7 @@ let startSimulator = (bsconfig) => {
   print_endline("Starting simulator");
   ReasonCliTools.Commands.execSync(
     ~onOut=print_endline,
-    ~cmd="ios-sim launch ios/_build/Debug-iphonesimulator/" ++ appName ++ ".app --devicetypeid 'iPhone-8, 11.1'",
+    ~cmd="ios-sim launch ios/_build/Debug-iphonesimulator/" ++ appName ++ ".app --log ./ios.log --devicetypeid 'iPhone-8, 11.1'",
     ()
   ) |> BuildUtils.expectSuccess("Unable to start simulator");
 };
