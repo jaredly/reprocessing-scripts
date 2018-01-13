@@ -24,14 +24,19 @@ let ensurePublic = () => {
   };
 };
 
-let webpackCommand = "webpack --entry ./lib/js/src/web.js \
+/* let webpackCommand = "webpack --entry ./lib/js/src/web.js \
     --resolve-alias Reprocessing=@jaredly/reprocessing \
     --resolve-alias ReasonglInterface=@jaredly/reasongl-interface \
     --resolve-alias ReasonglWeb=@jaredly/reasongl-web \
     --output-path ./public/assets \
-    --output-filename bundle.js";
+    --output-filename bundle.js"; */
 
 let bsbCommand = "bsb -make-world -backend js";
+
+let buildBundle = () => {
+  let output = Packre.Pack.process(~renames=[], "./lib/js/src/web.js");
+  ReasonCliTools.Files.writeFile("./public/assets/bundle.js", output) |> ignore;
+};
 
 let build = () => {
   ensurePublic();
@@ -39,34 +44,132 @@ let build = () => {
   print_newline();
   BuildUtils.readCommand(bsbCommand) |> Builder.unwrap("Unable to run bsb") |>  String.concat("\n    ") |> (x) => print_endline("\n    " ++ x);
   print_newline();
-  print_endline(">> Running webpack");
+  print_endline(">> Running pack");
   print_newline();
-  BuildUtils.readCommand(webpackCommand) |> Builder.unwrap("Unable to run webpack") |> String.concat("\n    ") |> (x) => print_endline("\n    " ++ x);
+  try (buildBundle()) {
+  | Failure(message) => failwith("unable to run pack.re: " ++ message)
+  };
   if (Builder.exists("assets")) {
     print_newline();
     print_endline(">> Copying assets");
-    BuildUtils.copyDirShallow("./assets", "./public/assets");
+    BuildUtils.copyDeep("./assets", "./public/assets");
   };
   print_newline();
   print_endline(">> Js build done <<")
 };
 
+let sendHot = (client, script) => {
+  print_endline("Sending hot");
+  open ReasonSimpleServer.Basic;
+  sendToSocket(client, formatResponse(okTop("application/javascript"), script));
+  Unix.shutdown(client, Unix.SHUTDOWN_ALL);
+};
+
+let hot = () => {
+  ensurePublic();
+  if (Builder.exists("assets")) {
+    print_endline(">> Copying assets");
+    BuildUtils.copyDeep("./assets", "./public/assets");
+  };
+
+  BuildUtils.readCommand(bsbCommand) |> Builder.unwrap("Unable to run bsb") |>  String.concat("\n    ") |> (x) => print_endline("\n    " ++ x);
+  let initialBundle = Packre.Pack.process(~renames=[], "./lib/js/src/webhot.js");
+  /* ReasonCliTools.Files.writeFile("./public/assets/bundle.js", output) |> ignore; */
+
+  /* BuildUtils.showCommand("open http://localhost:3451") |> ignore; */
+  print_endline("Static server on http://localhost:3451");
+
+  let previous = ref(Packre.Pack.process(~externalEverything=true, ~renames=[], "./lib/js/src/web.js"));
+
+  let waitingToSend = ref(Some(previous^));
+  let waitingSocket = ref(None);
+
+  let bsb = ReasonCliTools.Commands.exec(
+    ~cmd=bsbCommand ++ " -w",
+    ~onOut=text => {
+      print_endline(text);
+      print_endline("Static server on http://localhost:3451");
+      let text = try (Some(Packre.Pack.process(~externalEverything=true, ~renames=[], "./lib/js/src/web.js"))) {
+      | Failure(message) => None
+      };
+      switch text {
+      | None => print_endline("Pack.re bundling failed")
+      | Some(text) when text == previous^ => {
+        print_endline("Rebuilt but same");
+      }
+      | Some(text) =>
+        print_endline("Rebuilt the js bundle");
+        previous := text;
+        switch waitingSocket^ {
+        | None => waitingToSend := Some(text)
+        | Some(socket) =>
+          waitingSocket := None;
+          sendHot(socket, text);
+        };
+      };
+      ()
+    }
+  );
+
+  ReasonSimpleServer.Static.run(
+    ~extraHandler=(method, path, headers) => {
+      switch (method, path) {
+      | ("GET", "/hot.js") =>
+        Some(ReasonSimpleServer.Basic.Response.Custom(socket => {
+          print_endline("Hot hot");
+          switch waitingToSend^ {
+          | Some(body) => {
+            waitingToSend := None;
+            sendHot(socket, body);
+          }
+          | None => {
+            print_endline("nothing yet");
+            waitingSocket := Some(socket)
+          }
+          };
+          /* chill */
+        }))
+      | ("GET", "/assets/bundle.js") => {
+        /* If the user reloaded the page, be ready to send up a new hot.js */
+        let waitingToSend = ref(Some(previous^));
+        print_endline("Getting main bundle");
+        Some(ReasonSimpleServer.Basic.Response.Ok("application/javascript", initialBundle))
+      }
+      | _ => {
+        print_endline("Skip whatever " ++ path);
+        None
+      }
+    }
+    },
+    ~poll=() => ReasonCliTools.Commands.poll(bsb),
+    ~port=3451,
+    "./public"
+  )
+};
+
+/*
 let watch = () => {
   ensurePublic();
   if (Builder.exists("assets")) {
     print_endline(">> Copying assets");
-    BuildUtils.copyDirShallow("./assets", "./public/assets");
+    BuildUtils.copyDeep("./assets", "./public/assets");
   };
   let buffers = ref([|"", ""|]);
-  let (bsb, close_bsb, _) = BuildUtils.pollableCommand("Bucklescript", bsbCommand ++ " -w");
-  let (webpack, close_webpack, _) = BuildUtils.pollableCommand("Webpack", "sleep 2 && " ++ webpackCommand ++ " -w");
+  let bsb = ReasonCliTools.Commands.exec(
+    ~cmd=bsbCommand ++ " -w",
+    ~onOut=text => {
+      print_endline(text);
+      try {buildBundle(); print_endline("Rebuild the js bundle")} {
+      | Failure(message) => failwith("Failed to rebuild js bundle: " ++ message)
+      };
+      ()
+    }
+  );
   let poll = () => {
-    bsb();
-    webpack();
+    ReasonCliTools.Commands.poll(bsb);
   };
   let close = () => {
-    close_bsb();
-    close_webpack();
+    ReasonCliTools.Commands.kill(bsb);
   };
   (poll, close)
-};
+}; */

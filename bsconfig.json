@@ -9,7 +9,7 @@
     "./src",
   ],
   "package-specs": ["commonjs", "es6"],
-  "bs-dependencies": ["rex-json", "reason-cli-tools", "reason-simple-server"],
+  "bs-dependencies": ["rex-json", "reason-cli-tools", "reason-simple-server", "pack.re"],
   "entries": [{
     "backend": "native",
     "main-module": "Main"

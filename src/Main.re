@@ -38,12 +38,7 @@ Usage:
 let main = (bsconfig) => switch (Sys.argv) {
 | [|_, "all"|] => {Native.byte(); Native.run(); Android.both(); IOS.both(); Js.build()}
 | [|_, "js"|] => Js.build()
-| [|_, "js:serve"|] => {
-    let (poll, _) = Js.watch();
-    BuildUtils.showCommand("open http://localhost:3451") |> ignore;
-    print_endline("Static server on http://localhost:3451");
-    ReasonSimpleServer.Static.run(~poll, ~port=3451, "./public")
-}
+| [|_, "js:serve"|] => Js.hot()
 | [|_, "native"|] => Native.byte() |> ignore
 | [|_, "native:hot"|] => Native.hot(bsconfig)
 | [|_, "native:bundle"|] => {Native.run();Native.bundle(bsconfig)}
