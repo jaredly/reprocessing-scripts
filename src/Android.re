@@ -139,7 +139,7 @@ let configForArch = (~byte, entryFile, arch, ocamlarch, ndkarch, cxxarch, gccarc
       Filename.concat(BuildUtils.findNodeModule("@jaredly/reprocessing", "./node_modules") |> unwrap("unable to find reprocessing dependency"), "src"),
     ],
     buildDir: "_build/android_" ++ arch,
-    env: env ++ " BSB_BACKEND=" ++ (byte ? "byte-android" : "native-android") ++ " LOCAL_IP=" ++ HotServer.myIp(),
+    env: env ++ " BSB_BACKEND=" ++ (byte ? "byte-android" : "native-android") ++ " LOCAL_IP=" ++ HotServer.myIp() ++ " RSB_ARCH=" ++ ocamlarch,
 
     cc: ndk ++ "/toolchains/" ++ gccarch ++ "-4.9/prebuilt/darwin-x86_64/bin/" ++ gccarch2 ++ "-gcc",
     outDir: "./android/app/src/main/jniLibs/" ++ arch ++ "/",
