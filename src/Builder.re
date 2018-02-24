@@ -49,6 +49,7 @@ type config = {
   cOpts: string,
   mlOpts: string,
   dependencyDirs: list(string),
+  packagedLibs: list((string, Json.t)),
   shared: bool,
   outDir: string,
   buildDir: string,
@@ -58,15 +59,28 @@ type config = {
   ppx: list(string),
 };
 
-let isSourceFile = x => Filename.check_suffix(x, ".re") || Filename.check_suffix(x, ".ml");
-
-let copyAndSort = ({env, mainFile, dependencyDirs, buildDir, ocamlDir, refmt, ppx}) => {
+let copyAndSort = ({env, mainFile, dependencyDirs, packagedLibs, buildDir, ocamlDir, refmt, ppx}) => {
   try (Unix.stat(buildDir) |> ignore) {
   | Unix.Unix_error(Unix.ENOENT, _, _) => Unix.mkdir(buildDir, 0o740);
   };
   let allNames = List.map(dirname => copyDirContents(dirname, buildDir), [Filename.dirname(mainFile), ...dependencyDirs]) |> List.concat;
+
+  let allNames = allNames @ List.map(
+    ((directory, bsconfig)) => {
+      open Infix;
+      let contents = Namespace.packageLibraryContents(directory, bsconfig, ~ocamlDir, ~refmt, ~ppx, ~env);
+      let packageName = Json.get("name", bsconfig) |?> Json.string |! "package name must be a string";
+      let moduleName = Namespace.stripNonModuleThings(packageName) |> Namespace.capitalize;
+      let dest = Filename.concat(buildDir, moduleName ++ ".re");
+      ReasonCliTools.Files.writeFile(dest, contents);
+      dest
+    },
+    packagedLibs
+  );
+
+
   let mainFileName = Filename.concat(buildDir, Filename.basename(mainFile));
-  let reasonOrOcamlFiles = List.filter(isSourceFile, allNames);
+  let reasonOrOcamlFiles = List.filter(Utils.isSourceFile, allNames);
   let filesInOrder = unwrap("Failed to run ocamldep", Getdeps.sortSourceFilesInDependencyOrder(~ocamlDir, ~refmt, ~ppx, ~env, reasonOrOcamlFiles, mainFileName));
   (allNames, filesInOrder)
 };

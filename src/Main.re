@@ -36,7 +36,7 @@ Usage:
 |};
 
 let main = (bsconfig) => switch (Sys.argv) {
-| [|_, "all"|] => {Native.byte(); Native.run(); Android.both(); IOS.both(); Js.build()}
+| [|_, "all"|] => {Native.byte(); Native.run(); Android.both(bsconfig); IOS.both(); Js.build()}
 | [|_, "js"|] => Js.build()
 | [|_, "js:serve"|] => Js.hot()
 | [|_, "native"|] => Native.byte() |> ignore
@@ -45,8 +45,8 @@ let main = (bsconfig) => switch (Sys.argv) {
 | [|_, "ios"|] => {IOS.both(); IOS.xcodebuild(bsconfig)}
 | [|_, "ios:sim"|] => {IOS.both(); IOS.xcodebuild(bsconfig); IOS.startSimulator(bsconfig)}
 | [|_, "ios:device"|] => {IOS.both(); IOS.buildForDevice(bsconfig)}
-| [|_, "android"|] => {Android.both(); Android.assemble() |> ignore}
-| [|_, "android:run"|] => {Android.both(); Android.install() |> ignore; Android.run(bsconfig)}
+| [|_, "android"|] => {Android.both(bsconfig); Android.assemble() |> ignore}
+| [|_, "android:run"|] => {Android.both(bsconfig); Android.install() |> ignore; Android.run(bsconfig)}
 | [|_, "android:hot"|] => {Android.hot(bsconfig)}
 | _ => {print_endline(usage); exit(1)}
 };

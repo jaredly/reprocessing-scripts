@@ -9,7 +9,8 @@ let makeEnv = (cross, xcode, arch) => {
    CAML_BYTECC=\"" ++ cc ++ " -O2 -Wall\"
    CAML_NATIVECC=\"" ++ cc ++ " -O2 -Wall\"
    CAML_MKEXE=\"" ++ cc ++ " -O2\"
-   CAML_ASM=\"" ++ cc ++ " -c\"";
+   CAML_ASM=\"" ++ cc ++ " -c\""
+   ++ "              ";
 };
 
 let buildForArch = (~byte=false, ~suffixed=true, cross, xcode, arch, sdkName) => {
@@ -49,6 +50,7 @@ let buildForArch = (~byte=false, ~suffixed=true, cross, xcode, arch, sdkName) =>
       Filename.concat(iosDir, "src"),
       Filename.concat(BuildUtils.findNodeModule("@jaredly/reprocessing", "./node_modules") |> unwrap("unable to find reprocessing dependency"), "src"),
     ],
+    packagedLibs: [],
     buildDir: "_build/ios_" ++ arch,
     env: makeEnv(cross, xcode, arch) ++ " BSB_BACKEND=" ++ (byte ? "byte-ios" : "native-ios") ++ " LOCAL_IP=" ++ HotServer.myIp(),
 

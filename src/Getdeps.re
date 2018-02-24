@@ -58,8 +58,7 @@ let oneFilesDeps = (depsList, mainFile) => {
   List.filter(item => Hashtbl.mem(touched, fst(item)), depsList);
 };
 
-let resolveDependencyOrder = (depsList, mainFile) => {
-  let mainDeps = oneFilesDeps(depsList, mainFile);
+let sortDeps = mainDeps => {
   let scores = Hashtbl.create(List.length(mainDeps));
 
   /** Initialize everything to zero */
@@ -100,8 +99,39 @@ let resolveDependencyOrder = (depsList, mainFile) => {
   sorted
 };
 
-let sortSourceFilesInDependencyOrder = (sourceFiles, mainFile, ~ocamlDir, ~refmt, ~ppx, ~env) => {
+let resolveDependencyOrder = (depsList, mainFile) => {
+  let mainDeps = oneFilesDeps(depsList, mainFile);
+  sortDeps(mainDeps);
+};
+
+let runOcamlDep = (~sourceFiles, ~sourceDirectories, ~ocamlDir, ~refmt, ~ppx, ~env) => {
   let cmd =
+    Printf.sprintf(
+      "%s %s %s -pp '%s --print binary' %s -ml-synonym .re %s -one-line -native %s",
+      env,
+      Filename.concat(ocamlDir, "bin/ocamlrun"),
+      Filename.concat(ocamlDir, "bin/ocamldep"),
+      refmt,
+      String.concat(" ", List.map(m => "-ppx " ++ m, ppx)),
+      String.concat(" ", List.map(m => "-I " ++ m, sourceDirectories)),
+      String.concat(" ", sourceFiles)
+    );
+  switch (readCommand(cmd)) {
+  | None => None
+  | Some(raw) => Some(parseOcamldep(raw))
+  }
+};
+
+let sortSourceFilesInDependencyOrder = (sourceFiles, mainFile, ~ocamlDir, ~refmt, ~ppx, ~env) => {
+  switch (runOcamlDep(~sourceFiles, ~sourceDirectories=[Filename.dirname(mainFile)], ~ocamlDir, ~refmt, ~ppx, ~env)) {
+  | None => None
+  | Some(depsList) => {
+      let filesInOrder = resolveDependencyOrder(depsList, mainFile);
+      Some(filesInOrder)
+  }
+  };
+
+  /* let cmd =
     Printf.sprintf(
       "%s %s %s -pp '%s --print binary' %s -ml-synonym .re -I %s -one-line -native %s",
       env,
@@ -118,7 +148,7 @@ let sortSourceFilesInDependencyOrder = (sourceFiles, mainFile, ~ocamlDir, ~refmt
     let depsList = parseOcamldep(raw);
     let filesInOrder = resolveDependencyOrder(depsList, mainFile);
     Some(filesInOrder)
-  }
+  } */
 };
 
 let lastModifiedTimes = Hashtbl.create(10);

@@ -10,7 +10,8 @@ let makeEnv = (~byte=false, arch, abi, ndk1, full) => {
   let darwin_ndk = ndk ++ "/toolchains/" ++ ndk1 ++ "-4.9/prebuilt/darwin-x86_64";
   let cc = darwin_ndk ++ "/bin/" ++ full ++ "-gcc  --sysroot " ++ ndk ++ "/platforms/android-24/arch-" ++ arch ++ " -I" ++ ndk ++ "/include -L" ++ ndk ++ "/lib -I" ++ ndk ++ "/sources/cxx-stl/gnu-libstdc++/4.9/include -I" ++ ndk ++ "/sources/cxx-stl/gnu-libstdc++/4.9/libs/" ++ abi ++ "/include -L" ++ ndk ++ "/sources/cxx-stl/gnu-libstdc++/4.9/libs/" ++ abi ++ " -I" ++ sysroot ++ "/include -L" ++ sysroot ++ "/lib";
 
-  "OCAMLLIB=\"" ++ sysroot ++ "/lib/ocaml\" CAML_BYTERUN=\"" ++ sysroot ++ "/bin/ocamlrun\" CAML_BYTECC=\"" ++ cc ++ " -O2 -fno-defer-pop " ++ (byte ? "" : "-Wall-D_FILE_OFFSET_BITS=64 ") ++ "-D_REENTRANT -fPIC\" CAML_NATIVECC=\"" ++ cc ++ " -O2 -Wall -D_FILE_OFFSET_BITS=64 -D_REENTRANT -fPIC\" CAML_MKDLL=\"" ++ cc ++ " -O2 -shared\" CAML_MKMAINDLL=\"" ++ cc ++ " -O2 -shared\" CAML_MKEXE=\"" ++ cc ++ " -O2\" CAML_PACKLD=\"" ++ darwin_ndk ++ "/bin/" ++ full ++ "-ld --sysroot " ++ ndk ++ "/platforms/android-24/arch-" ++ arch ++ " -L" ++ ndk ++ "/lib -L" ++ ndk ++ "/sources/cxx-stl/gnu-libstdc++/4.9/libs/" ++ abi ++ " -L" ++ sysroot ++ "/lib -r  -o\" CAML_RANLIB=" ++ darwin_ndk ++ "/bin/" ++ full ++ "-ranlib CAML_ASM=" ++ darwin_ndk ++ "/bin/" ++ full ++ "-as";
+  "OCAMLLIB=\"" ++ sysroot ++ "/lib/ocaml\" CAML_BYTERUN=\"" ++ sysroot ++ "/bin/ocamlrun\" CAML_BYTECC=\"" ++ cc ++ " -O2 -fno-defer-pop " ++ (byte ? "" : "-Wall-D_FILE_OFFSET_BITS=64 ") ++ "-D_REENTRANT -fPIC\" CAML_NATIVECC=\"" ++ cc ++ " -O2 -Wall -D_FILE_OFFSET_BITS=64 -D_REENTRANT -fPIC\" CAML_MKDLL=\"" ++ cc ++ " -O2 -shared\" CAML_MKMAINDLL=\"" ++ cc ++ " -O2 -shared\" CAML_MKEXE=\"" ++ cc ++ " -O2\" CAML_PACKLD=\"" ++ darwin_ndk ++ "/bin/" ++ full ++ "-ld --sysroot " ++ ndk ++ "/platforms/android-24/arch-" ++ arch ++ " -L" ++ ndk ++ "/lib -L" ++ ndk ++ "/sources/cxx-stl/gnu-libstdc++/4.9/libs/" ++ abi ++ " -L" ++ sysroot ++ "/lib -r  -o\" CAML_RANLIB=" ++ darwin_ndk ++ "/bin/" ++ full ++ "-ranlib CAML_ASM=" ++ darwin_ndk ++ "/bin/" ++ full ++ "-as"
+  ++ "              ";
 };
 
 let fixSettingsGradle = (settingsGradle, reasonglAndroidDir) => {
@@ -106,7 +107,7 @@ let fixSettingsGradle = (settingsGradle, reasonglAndroidDir) => {
 
 
 
-let configForArch = (~byte, entryFile, arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
+let configForArch = (~byte, bsconfig, entryFile, arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2) => {
   let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
   let ndk = try (Sys.getenv("ANDROID_NDK")) {
   | Not_found => cross ++ "/android-ndk"
@@ -116,6 +117,8 @@ let configForArch = (~byte, entryFile, arch, ocamlarch, ndkarch, cxxarch, gccarc
   let env = makeEnv(~byte, ocamlarch, cxxarch, gccarch, gccarch2);
 
   let androidDir = BuildUtils.findNodeModule("@jaredly/reasongl-android", "./node_modules") |> Builder.unwrap("unable to find reasongl-android dependency");
+
+  let (packagedLibs, dependencyDirs) = BsConfig.processDeps(bsconfig);
 
   Builder.{
     name: "reasongl",
@@ -137,7 +140,8 @@ let configForArch = (~byte, entryFile, arch, ocamlarch, ndkarch, cxxarch, gccarc
       Filename.concat(BuildUtils.findNodeModule("@jaredly/reasongl-interface", "./node_modules") |> unwrap("unable to find reasongl-interface dependency"), "src"),
       Filename.concat(androidDir, "src"),
       Filename.concat(BuildUtils.findNodeModule("@jaredly/reprocessing", "./node_modules") |> unwrap("unable to find reprocessing dependency"), "src"),
-    ],
+    ] @ dependencyDirs,
+    packagedLibs,
     buildDir: "_build/android_" ++ arch,
     env: env ++ " BSB_BACKEND=" ++ (byte ? "byte-android" : "native-android") ++ " LOCAL_IP=" ++ HotServer.myIp() ++ " RSB_ARCH=" ++ ocamlarch,
 
@@ -154,7 +158,7 @@ let configForArch = (~byte, entryFile, arch, ocamlarch, ndkarch, cxxarch, gccarc
 
 
 
-let build = (config) => {
+let build = (bsconfig, config) => {
   open Builder;
 
   /* let config = configForArch(~byte, entryFile, arch, ocamlarch, ndkarch, cxxarch, gccarch, gccarch2); */
@@ -190,16 +194,16 @@ let build = (config) => {
   Builder.compile(config);
 };
 
-let armv7Config = (~byte, entry) => {
-  configForArch(~byte, entry, "armeabi-v7a", "armv7", "arm", "armabi", "arm-linux-androideabi", "arm-linux-androideabi");
+let armv7Config = (~byte, bsconfig, entry) => {
+  configForArch(~byte, bsconfig, entry, "armeabi-v7a", "armv7", "arm", "armabi", "arm-linux-androideabi", "arm-linux-androideabi");
 };
-let x86Config = (~byte, entry) => {
-  configForArch(~byte, entry, "x86", "x86", "x86", "x86", "x86", "i686-linux-android");
+let x86Config = (~byte, bsconfig, entry) => {
+  configForArch(~byte, bsconfig, entry, "x86", "x86", "x86", "x86", "x86", "i686-linux-android");
 };
 
-let both = () => {
-  build(armv7Config(~byte=false, "./src/android.re"));
-  build(x86Config(~byte=false, "./src/android.re"));
+let both = (bsconfig) => {
+  build(bsconfig, armv7Config(~byte=false, bsconfig, "./src/android.re"));
+  build(bsconfig, x86Config(~byte=false, bsconfig, "./src/android.re"));
 };
 
 let assemble = () => {
@@ -229,14 +233,14 @@ let run = (config) => {
   }
 };
 
-let compileLib = mainFile => {
-  let config = armv7Config(~byte=true, mainFile);
-  build(config);
+let compileLib = (bsconfig, mainFile) => {
+  let config = armv7Config(~byte=true, bsconfig, mainFile);
+  build(bsconfig, config);
 
   let mainDir = Filename.dirname(mainFile);
   let siblings = ReasonCliTools.Files.readDirectory(mainDir) |> List.map(Filename.concat(mainDir));
   let mainFileName = Filename.concat(config.buildDir, Filename.basename(mainFile));
-  let reasonOrOcamlFiles = List.filter(Builder.isSourceFile, siblings);
+  let reasonOrOcamlFiles = List.filter(Utils.isSourceFile, siblings);
   let filesInOrder = Builder.unwrap("Failed to run ocamldep", Getdeps.sortSourceFilesInDependencyOrder(~ocamlDir=config.ocamlDir, ~refmt=config.refmt, ~ppx=config.ppx, ~env=config.env, reasonOrOcamlFiles, mainFile));
 
   let cmos = List.map(n => Filename.concat(config.buildDir, Filename.chop_extension(Filename.basename(n)) ++ ".cmo"), filesInOrder)
@@ -253,11 +257,11 @@ let compileLib = mainFile => {
   (dest, filesInOrder)
 };
 
-let hot = (config) => {
-  build(armv7Config(~byte=true, "./src/androidhot.re"));
-  build(x86Config(~byte=true, "./src/androidhot.re"));
+let hot = (bsconfig) => {
+  build(armv7Config(~byte=true, bsconfig, "./src/androidhot.re"));
+  build(x86Config(~byte=true, bsconfig, "./src/androidhot.re"));
   install();
-  run(config);
-  HotServer.hotServer(compileLib);
+  run(bsconfig);
+  HotServer.hotServer(compileLib(bsconfig));
   /* hotServer(); */
 };
