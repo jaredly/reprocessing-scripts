@@ -1,6 +1,18 @@
 
 open Infix;
 
+/**
+ * TODO TODO
+ *
+ * in order to fully support bucklescript libraries...
+ *
+ * - support the `ppx` thing
+ * - recursive dependencies
+ * - maybe bsc-flags & warnings?
+ *
+ * also, I'll want a way to specify dependencies that are for a given target.
+ */
+
 let rec getSubdirs = dir => {
   ReasonCliTools.Files.readDirectory(dir) |> List.fold_left((directories, item) => {
     let full = Filename.concat(dir, item);

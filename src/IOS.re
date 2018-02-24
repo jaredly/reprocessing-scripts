@@ -13,7 +13,7 @@ let makeEnv = (cross, xcode, arch) => {
    ++ "              ";
 };
 
-let buildForArch = (~byte=false, ~suffixed=true, cross, xcode, arch, sdkName) => {
+let buildForArch = (~byte=false, ~suffixed=true, bsconfig, cross, xcode, arch, sdkName) => {
   let sdk = xcode ++ "/Platforms/" ++ sdkName ++ ".platform/Developer/SDKs/" ++ sdkName ++ ".sdk";
 
   let ocaml = cross ++ "/ios-" ++ arch;
@@ -37,6 +37,8 @@ let buildForArch = (~byte=false, ~suffixed=true, cross, xcode, arch, sdkName) =>
 
   let iosDir = BuildUtils.findNodeModule("@jaredly/reasongl-ios", "./node_modules") |> Builder.unwrap("unable to find reasongl-ios dependency");
 
+  let (packagedLibs, dependencyDirs) = BsConfig.processDeps(bsconfig);
+
   Builder.compile(Builder.{
     name: suffixed ? "reasongl_" ++ arch : "reasongl",
     byte,
@@ -49,8 +51,8 @@ let buildForArch = (~byte=false, ~suffixed=true, cross, xcode, arch, sdkName) =>
       Filename.concat(BuildUtils.findNodeModule("@jaredly/reasongl-interface", "./node_modules") |> unwrap("unable to find reasongl-interface dependency"), "src"),
       Filename.concat(iosDir, "src"),
       Filename.concat(BuildUtils.findNodeModule("@jaredly/reprocessing", "./node_modules") |> unwrap("unable to find reprocessing dependency"), "src"),
-    ],
-    packagedLibs: [],
+    ] @ dependencyDirs,
+    packagedLibs,
     buildDir: "_build/ios_" ++ arch,
     env: makeEnv(cross, xcode, arch) ++ " BSB_BACKEND=" ++ (byte ? "byte-ios" : "native-ios") ++ " LOCAL_IP=" ++ HotServer.myIp(),
 
@@ -65,25 +67,25 @@ let buildForArch = (~byte=false, ~suffixed=true, cross, xcode, arch, sdkName) =>
   });
 };
 
-let arm64 = () => {
+let arm64 = (bsconfig) => {
   let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
   let xcode = BuildUtils.readCommand("xcode-select -p") |> Builder.unwrap("Failed to find xcode") |> List.hd;
-  buildForArch(~suffixed=false, cross, xcode, "arm64", "iPhoneOS");
+  buildForArch(~suffixed=false, bsconfig, cross, xcode, "arm64", "iPhoneOS");
 };
-let x86_64 = () => {
+let x86_64 = (bsconfig) => {
   let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
   let xcode = BuildUtils.readCommand("xcode-select -p") |> Builder.unwrap("Failed to find xcode") |> List.hd;
-  buildForArch(~suffixed=false, cross, xcode, "x86_64", "iPhoneSimulator");
+  buildForArch(~suffixed=false, bsconfig, cross, xcode, "x86_64", "iPhoneSimulator");
 };
 
-let both = () => {
+let both = (bsconfig) => {
   let cross = Filename.concat(Sys.getenv("HOME"), ".ocaml-cross-mobile");
   let xcode = BuildUtils.readCommand("xcode-select -p") |> Builder.unwrap("Failed to find xcode") |> List.hd;
 
   if (!Builder.exists("_build")) Unix.mkdir("_build", 0o740);
 
-  buildForArch(cross, xcode, "x86_64", "iPhoneSimulator");
-  buildForArch(cross, xcode, "arm64", "iPhoneOS");
+  buildForArch(bsconfig, cross, xcode, "x86_64", "iPhoneSimulator");
+  buildForArch(bsconfig, cross, xcode, "arm64", "iPhoneOS");
 
   BuildUtils.readCommand(
     "lipo -create -o ios/libreasongl.a ios/libreasongl_arm64.a ios/libreasongl_x86_64.a"
@@ -145,7 +147,7 @@ let startSimulator = (bsconfig) => {
   print_endline("Starting simulator");
   ReasonCliTools.Commands.execSync(
     ~onOut=print_endline,
-    ~cmd="ios-sim launch ios/_build/Debug-iphonesimulator/" ++ appName ++ ".app --log ./ios.log --devicetypeid 'iPhone-8, 11.1'",
+    ~cmd="ios-sim launch ios/_build/Debug-iphonesimulator/" ++ appName ++ ".app --log ./ios.log --devicetypeid 'iPhone-8, 11.2'",
     ()
   ) |> BuildUtils.expectSuccess("Unable to start simulator");
 };

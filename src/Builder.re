@@ -78,7 +78,6 @@ let copyAndSort = ({env, mainFile, dependencyDirs, packagedLibs, buildDir, ocaml
     packagedLibs
   );
 
-
   let mainFileName = Filename.concat(buildDir, Filename.basename(mainFile));
   let reasonOrOcamlFiles = List.filter(Utils.isSourceFile, allNames);
   let filesInOrder = unwrap("Failed to run ocamldep", Getdeps.sortSourceFilesInDependencyOrder(~ocamlDir, ~refmt, ~ppx, ~env, reasonOrOcamlFiles, mainFileName));

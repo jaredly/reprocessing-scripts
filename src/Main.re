@@ -36,15 +36,15 @@ Usage:
 |};
 
 let main = (bsconfig) => switch (Sys.argv) {
-| [|_, "all"|] => {Native.byte(); Native.run(); Android.both(bsconfig); IOS.both(); Js.build()}
+| [|_, "all"|] => {Native.byte(); Native.run(); Android.both(bsconfig); IOS.both(bsconfig); Js.build()}
 | [|_, "js"|] => Js.build()
 | [|_, "js:serve"|] => Js.hot()
 | [|_, "native"|] => Native.byte() |> ignore
 | [|_, "native:hot"|] => Native.hot(bsconfig)
 | [|_, "native:bundle"|] => {Native.run();Native.bundle(bsconfig)}
-| [|_, "ios"|] => {IOS.both(); IOS.xcodebuild(bsconfig)}
-| [|_, "ios:sim"|] => {IOS.both(); IOS.xcodebuild(bsconfig); IOS.startSimulator(bsconfig)}
-| [|_, "ios:device"|] => {IOS.both(); IOS.buildForDevice(bsconfig)}
+| [|_, "ios"|] => {IOS.both(bsconfig); IOS.xcodebuild(bsconfig)}
+| [|_, "ios:sim"|] => {IOS.both(bsconfig); IOS.xcodebuild(bsconfig); IOS.startSimulator(bsconfig)}
+| [|_, "ios:device"|] => {IOS.both(bsconfig); IOS.buildForDevice(bsconfig)}
 | [|_, "android"|] => {Android.both(bsconfig); Android.assemble() |> ignore}
 | [|_, "android:run"|] => {Android.both(bsconfig); Android.install() |> ignore; Android.run(bsconfig)}
 | [|_, "android:hot"|] => {Android.hot(bsconfig)}
