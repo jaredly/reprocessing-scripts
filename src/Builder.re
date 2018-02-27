@@ -72,7 +72,7 @@ let copyAndSort = ({env, mainFile, dependencyDirs, packagedLibs, buildDir, ocaml
       let packageName = Json.get("name", bsconfig) |?> Json.string |! "package name must be a string";
       let moduleName = Namespace.stripNonModuleThings(packageName) |> Namespace.capitalize;
       let dest = Filename.concat(buildDir, moduleName ++ ".re");
-      ReasonCliTools.Files.writeFile(dest, contents);
+      ReasonCliTools.Files.writeFile(dest, contents) |> x => if (!x) {failwith("Unable to write packed file")};
       dest
     },
     packagedLibs

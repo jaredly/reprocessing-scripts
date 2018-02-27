@@ -104,18 +104,21 @@ let resolveDependencyOrder = (depsList, mainFile) => {
   sortDeps(mainDeps);
 };
 
+let ocamlDepCommand = (~sourceFiles, ~sourceDirectories, ~ocamlDir, ~refmt, ~ppx, ~env) => {
+  Printf.sprintf(
+    "%s %s %s -pp '%s --print binary' %s -ml-synonym .re %s -one-line -native %s",
+    env,
+    Filename.concat(ocamlDir, "bin/ocamlrun"),
+    Filename.concat(ocamlDir, "bin/ocamldep"),
+    refmt,
+    String.concat(" ", List.map(m => "-ppx " ++ m, ppx)),
+    String.concat(" ", List.map(m => "-I " ++ m, sourceDirectories)),
+    String.concat(" ", sourceFiles)
+  );
+};
+
 let runOcamlDep = (~sourceFiles, ~sourceDirectories, ~ocamlDir, ~refmt, ~ppx, ~env) => {
-  let cmd =
-    Printf.sprintf(
-      "%s %s %s -pp '%s --print binary' %s -ml-synonym .re %s -one-line -native %s",
-      env,
-      Filename.concat(ocamlDir, "bin/ocamlrun"),
-      Filename.concat(ocamlDir, "bin/ocamldep"),
-      refmt,
-      String.concat(" ", List.map(m => "-ppx " ++ m, ppx)),
-      String.concat(" ", List.map(m => "-I " ++ m, sourceDirectories)),
-      String.concat(" ", sourceFiles)
-    );
+  let cmd = ocamlDepCommand(~sourceFiles, ~sourceDirectories, ~ocamlDir, ~refmt, ~ppx, ~env);
   switch (readCommand(cmd)) {
   | None => None
   | Some(raw) => Some(parseOcamldep(raw))
@@ -123,10 +126,18 @@ let runOcamlDep = (~sourceFiles, ~sourceDirectories, ~ocamlDir, ~refmt, ~ppx, ~e
 };
 
 let sortSourceFilesInDependencyOrder = (sourceFiles, mainFile, ~ocamlDir, ~refmt, ~ppx, ~env) => {
-  switch (runOcamlDep(~sourceFiles, ~sourceDirectories=[Filename.dirname(mainFile)], ~ocamlDir, ~refmt, ~ppx, ~env)) {
+  let cmd = ocamlDepCommand(~sourceFiles, ~sourceDirectories=[Filename.dirname(mainFile)], ~ocamlDir, ~refmt, ~ppx, ~env);
+  switch (readCommand(cmd)) {
   | None => None
-  | Some(depsList) => {
-      let filesInOrder = resolveDependencyOrder(depsList, mainFile);
+  | Some(raw) => {
+      let depsList = parseOcamldep(raw);
+      let filesInOrder = try (resolveDependencyOrder(depsList, mainFile)) {
+      | exn => {
+        print_endline("Ocamldep command: ");
+        print_endline(cmd);
+        raise(exn);
+      }
+      };
       Some(filesInOrder)
   }
   };

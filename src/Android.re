@@ -258,8 +258,8 @@ let compileLib = (bsconfig, mainFile) => {
 };
 
 let hot = (bsconfig) => {
-  build(armv7Config(~byte=true, bsconfig, "./src/androidhot.re"));
-  build(x86Config(~byte=true, bsconfig, "./src/androidhot.re"));
+  build(bsconfig, armv7Config(~byte=true, bsconfig, "./src/androidhot.re"));
+  build(bsconfig, x86Config(~byte=true, bsconfig, "./src/androidhot.re"));
   install();
   run(bsconfig);
   HotServer.hotServer(compileLib(bsconfig));
