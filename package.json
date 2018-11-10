@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "bs-platform": "bsansouci/bsb-native#fast",
-    "ios-deploy": "1.9.2",
+    "ios-deploy": "1.9.4",
     "ios-sim": "6.1.2",
     "minimist.re": "^0.0.3",
     "pack.re": "0.1.0",
